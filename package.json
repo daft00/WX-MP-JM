@@ -1,0 +1,16 @@
+{
+  "name": "growth-diary-miniprogram",
+  "version": "0.1.0",
+  "private": true,
+  "description": "成长日记微信小程序纯前端原型",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && node --check prototype/app.js",
+    "prototype": "http-server prototype -p 4173 -c-1"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "miniprogram-api-typings": "^5.2.3",
+    "typescript": "^5.9.2"
+  }
+}

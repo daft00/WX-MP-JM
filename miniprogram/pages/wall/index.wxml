@@ -1,0 +1,80 @@
+<view class="page wall-page">
+  <view class="wall-context-bar" bindtap="switchFamily">
+    <view class="context-home">⌂</view>
+    <view class="context-copy">
+      <text class="context-label">当前家庭</text>
+      <text class="context-value">{{familyName}} · {{selectedChildName}}</text>
+    </view>
+    <text class="context-action">切换家庭 ›</text>
+  </view>
+  <view class="hero">
+    <view class="hero-copy">
+      <text class="hero-kicker">{{familyName}}</text>
+      <text class="hero-title">把成长的每一天，<text class="title-break">轻轻收藏起来</text></text>
+    </view>
+    <view class="hero-sun">☀</view>
+  </view>
+
+  <view class="prototype-banner">当前为纯前端演示模式，数据仅保存在本机，不具备云端备份能力，请勿用于长期保存真实素材。</view>
+
+  <scroll-view class="child-filter" scroll-x enhanced show-scrollbar="{{false}}">
+    <view class="pill-row">
+      <view
+        wx:for="{{children}}"
+        wx:key="id"
+        class="pill {{selectedChildId === item.id ? 'active' : ''}}"
+        data-id="{{item.id}}"
+        bindtap="selectChild"
+      >{{item.name}}</view>
+    </view>
+  </scroll-view>
+
+  <view wx:if="{{entries.length}}" class="timeline">
+    <view wx:for="{{entries}}" wx:key="id" class="timeline-item">
+      <view class="timeline-dot" style="background: {{item.childColor}};"></view>
+      <view class="timeline-card card" data-id="{{item.id}}" bindtap="openEntry">
+        <view class="card-head">
+          <view class="child-avatar" style="background: {{item.childColor}};">{{item.childInitial}}</view>
+          <view class="card-head-copy">
+            <view><text class="child-name">{{item.childName}}</text><text class="age-label">{{item.ageLabel}}</text></view>
+            <text class="meta">{{item.dateLabel}} · {{item.authorName}}</text>
+          </view>
+          <text class="kind-badge">{{item.kindLabel}}</text>
+        </view>
+
+        <view wx:if="{{item.assets.length}}" class="media-grid media-count-{{item.assets.length}}">
+          <view wx:for="{{item.assets}}" wx:key="id" wx:for-item="asset" class="media-cell tone-{{asset.placeholderTone}}">
+            <image wx:if="{{asset.kind === 'IMAGE' && asset.localPath}}" class="media-image" src="{{asset.localPath}}" mode="aspectFill" />
+            <image wx:elif="{{asset.kind === 'VIDEO' && asset.posterPath}}" class="media-image" src="{{asset.posterPath}}" mode="aspectFill" />
+            <view wx:else class="media-placeholder">
+              <text class="media-icon">{{asset.kind === 'VIDEO' ? '▶' : '✦'}}</text>
+              <text>{{asset.kind === 'VIDEO' ? '视频片段' : '温暖瞬间'}}</text>
+            </view>
+            <text wx:if="{{asset.kind === 'VIDEO'}}" class="video-tag">视频</text>
+          </view>
+        </view>
+
+        <view class="card-body">
+          <view class="title-line">
+            <text class="entry-title">{{item.title}}</text>
+            <text wx:if="{{item.metricLabel}}" class="metric-chip">{{item.metricLabel}}</text>
+          </view>
+          <text class="entry-body">{{item.body}}</text>
+          <view class="card-foot">
+            <text wx:if="{{item.customEvent}}" class="event-label">🎈 {{item.customEvent}}</text>
+            <text class="open-label">查看记录 ›</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    <view wx:if="{{loading}}" class="load-more">正在翻阅成长记忆…</view>
+    <view wx:elif="{{!hasMore}}" class="load-more">已经看到最早的记忆了</view>
+  </view>
+
+  <view wx:elif="{{!loading}}" class="empty-state card">
+    <text class="empty-icon">🌱</text>
+    <text>还没有成长记录</text>
+  </view>
+
+  <view class="floating-button" bindtap="goPublish">＋ 记录今天</view>
+</view>

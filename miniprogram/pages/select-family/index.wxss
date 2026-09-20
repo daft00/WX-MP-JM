@@ -1,0 +1,36 @@
+.select-page { position: relative; min-height: 100vh; padding: calc(env(safe-area-inset-top) + 34rpx) 34rpx 50rpx; overflow: hidden; background: linear-gradient(180deg, #fffaf4 0%, #fff7ef 100%); }
+.soft-orb { position: absolute; border-radius: 50%; filter: blur(4rpx); opacity: .5; }
+.orb-one { top: -100rpx; right: -120rpx; width: 360rpx; height: 360rpx; background: #f7d4c7; }
+.orb-two { bottom: 120rpx; left: -180rpx; width: 400rpx; height: 400rpx; background: #e3eddf; }
+.select-header { position: relative; z-index: 1; display: flex; align-items: center; }
+.brand-mark { display: flex; align-items: center; justify-content: center; width: 72rpx; height: 72rpx; border-radius: 22rpx; background: #443a34; color: #fffaf4; font-family: serif; font-size: 32rpx; font-weight: 700; }
+.brand-copy { display: flex; flex: 1; flex-direction: column; gap: 2rpx; margin-left: 16rpx; }
+.brand-copy text:first-child { font-size: 27rpx; font-weight: 700; }
+.brand-copy text:last-child { color: #a18f83; font-size: 16rpx; letter-spacing: 3rpx; }
+.user-chip { padding: 10rpx 16rpx; border-radius: 999rpx; background: rgba(255,255,255,.72); color: #8b7568; font-size: 21rpx; }
+.select-content { position: relative; z-index: 1; padding: 90rpx 8rpx 100rpx; }
+.step-label { display: block; margin-bottom: 20rpx; color: #ca775d; font-size: 22rpx; font-weight: 700; letter-spacing: 2rpx; }
+.select-title { display: block; max-width: 620rpx; color: #443a34; font-family: serif; font-size: 50rpx; font-weight: 700; line-height: 1.42; }
+.accent { color: #cf765c; }
+.select-subtitle { display: block; margin-top: 24rpx; color: #8e7f75; font-size: 26rpx; line-height: 1.7; }
+.family-list { display: flex; flex-direction: column; gap: 20rpx; margin-top: 54rpx; }
+.family-card { display: flex; align-items: center; padding: 28rpx; border: 1rpx solid rgba(229,210,197,.85); border-radius: 28rpx; background: rgba(255,255,255,.88); box-shadow: 0 14rpx 34rpx rgba(97,67,48,.08); }
+.family-card:active { transform: scale(.985); }
+.family-icon { display: flex; align-items: center; justify-content: center; width: 84rpx; height: 84rpx; margin-right: 22rpx; border-radius: 24rpx; color: #fff; font-size: 34rpx; font-weight: 700; }
+.family-copy { display: flex; flex: 1; flex-direction: column; gap: 8rpx; }
+.family-name { font-size: 32rpx; font-weight: 700; }
+.family-hint { color: #9b8e84; font-size: 22rpx; }
+.arrow { color: #baa99e; font-size: 52rpx; font-weight: 300; }
+.outline-button { margin-top: 30rpx; border: 2rpx dashed #ddb5a4; border-radius: 26rpx; background: rgba(255,250,246,.72); color: #b66e56; font-size: 26rpx; }
+.back-row { margin-bottom: 42rpx; color: #a36a56; font-size: 25rpx; }
+.baby-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22rpx; margin-top: 52rpx; }
+.baby-card { display: flex; align-items: center; flex-direction: column; padding: 32rpx 16rpx 24rpx; border: 1rpx solid rgba(229,210,197,.85); border-radius: 30rpx; background: rgba(255,255,255,.9); box-shadow: 0 14rpx 34rpx rgba(97,67,48,.07); }
+.baby-card:active { transform: scale(.98); }
+.baby-avatar { display: flex; align-items: center; justify-content: center; width: 110rpx; height: 110rpx; margin-bottom: 18rpx; border: 10rpx solid rgba(255,255,255,.65); border-radius: 50%; color: #fff; font-size: 42rpx; font-weight: 700; box-shadow: 0 8rpx 20rpx rgba(75,56,44,.1); }
+.baby-name { font-size: 31rpx; font-weight: 700; }
+.baby-meta { margin-top: 7rpx; color: #95877d; font-size: 21rpx; }
+.enter-pill { margin-top: 22rpx; padding: 10rpx 20rpx; border-radius: 999rpx; background: #fff0e9; color: #bd6a50; font-size: 20rpx; font-weight: 600; }
+.empty-baby { display: flex; align-items: center; flex-direction: column; margin-top: 50rpx; padding: 60rpx 30rpx; border-radius: 30rpx; background: rgba(255,255,255,.86); color: #8e8177; }
+.empty-icon { margin-bottom: 16rpx; font-size: 70rpx; }
+.empty-baby .primary-button { width: 100%; margin-top: 30rpx; }
+.privacy-note { position: absolute; right: 0; bottom: calc(env(safe-area-inset-bottom) + 26rpx); left: 0; z-index: 1; color: #aa9b91; font-size: 20rpx; text-align: center; }

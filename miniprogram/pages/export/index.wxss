@@ -1,0 +1,18 @@
+.export-page { padding-bottom: 70rpx; }
+.export-hero { display: flex; flex-direction: column; padding: 18rpx 6rpx 32rpx; }
+.export-kicker { margin-bottom: 10rpx; color: #738c78; font-size: 21rpx; font-weight: 700; letter-spacing: 5rpx; }
+.export-title { font-family: serif; font-size: 42rpx; font-weight: 700; line-height: 1.4; }
+.title-break { display: block; }
+.create-card { padding: 30rpx; }
+.create-title { display: block; margin-bottom: 26rpx; font-size: 32rpx; font-weight: 700; }
+.permission-note { display: block; margin-top: 14rpx; color: #b26c67; font-size: 22rpx; text-align: center; }
+.job-list { display: flex; flex-direction: column; gap: 18rpx; }
+.job-card { padding: 26rpx; }
+.job-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16rpx; }
+.job-top > view { display: flex; flex-direction: column; gap: 6rpx; }
+.job-name { font-size: 30rpx; font-weight: 700; }
+.status { flex: 0 0 auto; padding: 8rpx 12rpx; border-radius: 999rpx; background: #fff0e9; color: #bd6d55; font-size: 20rpx; }
+.status-CONFIRMED { background: #edf5ee; color: #64806a; }
+.job-info { display: flex; flex-direction: column; gap: 8rpx; margin: 22rpx 0; padding: 18rpx; border-radius: 16rpx; background: #faf7f3; color: #857970; font-size: 23rpx; }
+.job-button { min-height: 76rpx; margin-top: 12rpx; font-size: 26rpx; }
+.confirmed-note { padding: 14rpx; border-radius: 14rpx; background: #edf5ee; color: #5d7d65; font-size: 22rpx; text-align: center; }

@@ -1,0 +1,64 @@
+<view class="page growth-page">
+  <view class="growth-head">
+    <view>
+      <text class="growth-kicker">GROWING UP</text>
+      <text class="growth-title">每一点变化，<text class="title-break">都有迹可循</text></text>
+    </view>
+    <view class="sprout">🌱</view>
+  </view>
+
+  <view class="prototype-banner">以下趋势只用于原型展示，不构成任何医疗或健康建议。</view>
+
+  <scroll-view class="child-filter" scroll-x enhanced show-scrollbar="{{false}}">
+    <view class="pill-row">
+      <view
+        wx:for="{{children}}"
+        wx:key="id"
+        class="pill {{selectedChildId === item.id ? 'active' : ''}}"
+        data-id="{{item.id}}"
+        bindtap="selectChild"
+      >{{item.name}}</view>
+    </view>
+  </scroll-view>
+
+  <view class="metric-tabs">
+    <view class="metric-tab {{metricType === 'HEIGHT' ? 'active' : ''}}" data-type="HEIGHT" bindtap="selectMetric">
+      <text class="metric-tab-icon">↕</text><text>身高</text><text class="metric-count">{{metricCounts.HEIGHT}}次</text>
+    </view>
+    <view class="metric-tab {{metricType === 'WEIGHT' ? 'active' : ''}}" data-type="WEIGHT" bindtap="selectMetric">
+      <text class="metric-tab-icon">⚖</text><text>体重</text><text class="metric-count">{{metricCounts.WEIGHT}}次</text>
+    </view>
+    <view class="metric-tab {{metricType === 'HEAD' ? 'active' : ''}}" data-type="HEAD" bindtap="selectMetric">
+      <text class="metric-tab-icon">○</text><text>头围</text><text class="metric-count">{{metricCounts.HEAD}}次</text>
+    </view>
+  </view>
+
+  <view class="latest-card card">
+    <view>
+      <text class="latest-label">最近一次记录</text>
+      <text class="latest-value">{{latestLabel}}</text>
+      <text class="meta">{{latestDate || '还没有成长数据'}}</text>
+    </view>
+    <view class="latest-mark">✦</view>
+  </view>
+
+  <view class="chart-card card">
+    <view class="chart-heading">
+      <text class="chart-title">成长趋势</text>
+      <text class="meta">单位：{{unit}}</text>
+    </view>
+    <view wx:if="{{points.length}}" class="chart">
+      <view wx:for="{{points}}" wx:key="id" class="chart-point">
+        <text class="point-value">{{item.value}}</text>
+        <view class="bar-track"><view class="bar" style="height: {{item.barHeight}}rpx;"></view></view>
+        <text class="point-date">{{item.dateLabel}}</text>
+      </view>
+    </view>
+    <view wx:else class="empty-state chart-empty">
+      <text class="empty-icon">📏</text>
+      <text>还没有这一项数据</text>
+    </view>
+  </view>
+
+  <button class="primary-button add-button" bindtap="addMetric">＋ 添加一次成长记录</button>
+</view>

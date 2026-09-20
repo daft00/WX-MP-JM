@@ -1,0 +1,53 @@
+<view class="select-page">
+  <view class="soft-orb orb-one"></view>
+  <view class="soft-orb orb-two"></view>
+
+  <view class="select-header">
+    <view class="brand-mark">长</view>
+    <view class="brand-copy"><text>成长日记</text><text>GROWTH DIARY</text></view>
+    <view wx:if="{{session}}" class="user-chip">{{session.user.avatarText}} · {{session.user.nickname}}</view>
+  </view>
+
+  <view wx:if="{{step === 'FAMILY'}}" class="select-content">
+    <text class="step-label">第一步 · 选择家庭</text>
+    <text class="select-title">今天要进入哪个<text class="accent">家庭空间</text>？</text>
+    <text class="select-subtitle">每个家庭拥有独立的宝宝、成员、记录与素材，数据不会混在一起。</text>
+
+    <view class="family-list">
+      <view wx:for="{{families}}" wx:key="id" class="family-card" data-id="{{item.id}}" bindtap="chooseFamily">
+        <view class="family-icon" style="background: {{item.color}};">{{item.initial}}</view>
+        <view class="family-copy">
+          <text class="family-name">{{item.name}}</text>
+          <text class="family-hint">进入后再选择宝宝</text>
+        </view>
+        <text class="arrow">›</text>
+      </view>
+    </view>
+
+    <button class="outline-button" bindtap="createFamily">＋ 创建新的家庭空间</button>
+  </view>
+
+  <view wx:else class="select-content">
+    <view class="back-row" bindtap="backToFamilies">‹ 返回选择家庭</view>
+    <text class="step-label">第二步 · 选择宝宝</text>
+    <text class="select-title">进入<text class="accent">{{selectedFamily.name}}</text>，记录谁的成长？</text>
+    <text class="select-subtitle">进入后可以在当前家庭内随时切换宝宝。</text>
+
+    <view wx:if="{{children.length}}" class="baby-grid">
+      <view wx:for="{{children}}" wx:key="id" class="baby-card" data-id="{{item.id}}" bindtap="chooseChild">
+        <view class="baby-avatar" style="background: {{item.avatarColor}};">{{item.initial}}</view>
+        <text class="baby-name">{{item.name}}</text>
+        <text class="baby-meta">{{item.genderLabel}} · {{item.ageLabel}}</text>
+        <view class="enter-pill">进入成长墙</view>
+      </view>
+    </view>
+
+    <view wx:else class="empty-baby">
+      <text class="empty-icon">🌱</text>
+      <text>这个家庭还没有宝宝档案</text>
+      <button class="primary-button" bindtap="addChild">创建第一个宝宝档案</button>
+    </view>
+  </view>
+
+  <view class="privacy-note">当前为本地演示模式，不会上传真实家庭资料</view>
+</view>

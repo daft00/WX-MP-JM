@@ -1,0 +1,33 @@
+{
+  "pages": [
+    "pages/select-family/index",
+    "pages/wall/index",
+    "pages/publish/index",
+    "pages/growth/index",
+    "pages/profile/index",
+    "pages/entry-detail/index",
+    "pages/child-form/index",
+    "pages/export/index"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#FFF9F2",
+    "navigationBarTitleText": "成长日记",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#FFF9F2"
+  },
+  "tabBar": {
+    "color": "#9A8E84",
+    "selectedColor": "#E88163",
+    "backgroundColor": "#FFFCF8",
+    "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/wall/index", "text": "成长墙" },
+      { "pagePath": "pages/publish/index", "text": "发布" },
+      { "pagePath": "pages/growth/index", "text": "成长数据" },
+      { "pagePath": "pages/profile/index", "text": "我的" }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

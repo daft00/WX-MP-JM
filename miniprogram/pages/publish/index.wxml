@@ -1,0 +1,80 @@
+<view class="page publish-page">
+  <view class="publish-heading">
+    <text class="heading-kicker">{{editingId ? 'EDIT MEMORY' : 'NEW MEMORY'}}</text>
+    <text class="heading-title">{{editingId ? '重新写好这段记忆' : '今天，有什么值得记住？'}}</text>
+  </view>
+
+  <view class="prototype-banner">素材仅保存到本机小程序沙箱，大文件可能只在当前会话有效，请勿把原型当作正式相册。</view>
+
+  <view class="kind-switch">
+    <view class="kind-option {{kind === 'DIARY' ? 'active' : ''}}" data-kind="DIARY" bindtap="selectKind">
+      <text class="kind-icon">☁</text><text>生活日记</text>
+    </view>
+    <view class="kind-option {{kind === 'MILESTONE' ? 'active' : ''}}" data-kind="MILESTONE" bindtap="selectKind">
+      <text class="kind-icon">✦</text><text>成长里程碑</text>
+    </view>
+  </view>
+
+  <view class="form-card card">
+    <view class="field">
+      <text class="field-label">记录给谁</text>
+      <picker mode="selector" range="{{children}}" range-key="name" value="{{childIndex}}" bindchange="changeChild">
+        <view class="picker-box">{{children[childIndex].name || '请先创建宝宝档案'}} <text class="picker-arrow">⌄</text></view>
+      </picker>
+    </view>
+
+    <view class="field">
+      <text class="field-label">成长日期</text>
+      <picker mode="date" value="{{occurredAt}}" bindchange="changeDate">
+        <view class="picker-box">{{occurredAt}} <text class="picker-arrow">⌄</text></view>
+      </picker>
+    </view>
+
+    <view class="field">
+      <view class="field-row"><text class="field-label">标题</text><text class="counter">{{titleCount}}/60</text></view>
+      <input class="input" value="{{title}}" maxlength="60" placeholder="例如：第一次叫妈妈" bindinput="inputTitle" />
+    </view>
+
+    <view class="field">
+      <view class="field-row"><text class="field-label">写下这一刻</text><text class="counter">{{bodyCount}}/2000</text></view>
+      <textarea class="textarea" value="{{body}}" maxlength="2000" placeholder="把当时的心情、宝宝的反应都记下来…" bindinput="inputBody" />
+    </view>
+
+    <view wx:if="{{kind === 'MILESTONE'}}" class="milestone-panel">
+      <view class="field">
+        <text class="field-label">自定义事件</text>
+        <input class="input" value="{{customEvent}}" placeholder="例如：第一次微笑" bindinput="inputCustomEvent" />
+      </view>
+      <view class="field">
+        <text class="field-label">成长指标（可选）</text>
+        <view class="metric-types">
+          <view class="metric-option {{metricType === 'HEIGHT' ? 'active' : ''}}" data-type="HEIGHT" bindtap="selectMetric">身高</view>
+          <view class="metric-option {{metricType === 'WEIGHT' ? 'active' : ''}}" data-type="WEIGHT" bindtap="selectMetric">体重</view>
+          <view class="metric-option {{metricType === 'HEAD' ? 'active' : ''}}" data-type="HEAD" bindtap="selectMetric">头围</view>
+        </view>
+        <view wx:if="{{metricType}}" class="metric-input-row">
+          <input class="input metric-input" type="digit" value="{{metricValue}}" placeholder="请输入数值" bindinput="inputMetricValue" />
+          <text class="metric-unit">{{metricType === 'WEIGHT' ? 'kg' : 'cm'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="field media-field">
+      <view class="field-row"><text class="field-label">照片与视频</text><text class="counter">{{assets.length}}/9</text></view>
+      <view class="selected-media">
+        <view wx:for="{{assets}}" wx:key="id" class="selected-item tone-{{item.placeholderTone}}">
+          <image wx:if="{{item.kind === 'IMAGE' && item.localPath}}" src="{{item.localPath}}" mode="aspectFill" />
+          <image wx:elif="{{item.kind === 'VIDEO' && item.posterPath}}" src="{{item.posterPath}}" mode="aspectFill" />
+          <view wx:else class="selected-placeholder">{{item.kind === 'VIDEO' ? '▶' : '✦'}}</view>
+          <view class="remove-button" data-id="{{item.id}}" catchtap="removeAsset">×</view>
+        </view>
+        <view wx:if="{{assets.length < 9}}" class="add-media" bindtap="chooseMedia">
+          <text class="add-icon">＋</text>
+          <text>照片/视频</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <button class="primary-button submit-button" loading="{{submitting}}" bindtap="submit">{{editingId ? '保存修改' : '收藏这段成长'}}</button>
+</view>

@@ -1,0 +1,159 @@
+page {
+  --cream: #fff9f2;
+  --paper: #fffdf9;
+  --coral: #e88163;
+  --coral-light: #f8d9cc;
+  --rose: #df8f99;
+  --ink: #3f3732;
+  --muted: #91857c;
+  --line: #eee4db;
+  --green: #83a88b;
+  background: var(--cream);
+  color: var(--ink);
+  font-size: 28rpx;
+}
+
+view, text, input, textarea, button, picker, scroll-view {
+  box-sizing: border-box;
+}
+
+.page {
+  min-height: 100vh;
+  padding: 28rpx 28rpx 48rpx;
+}
+
+.prototype-banner {
+  margin-bottom: 24rpx;
+  padding: 18rpx 22rpx;
+  border: 1rpx solid #f2cbbd;
+  border-radius: 20rpx;
+  background: #fff0e9;
+  color: #a45d46;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.section-title {
+  margin: 32rpx 0 18rpx;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.card {
+  border: 1rpx solid rgba(228, 210, 197, 0.72);
+  border-radius: 28rpx;
+  background: var(--paper);
+  box-shadow: 0 10rpx 30rpx rgba(103, 74, 54, 0.07);
+}
+
+.primary-button,
+.secondary-button,
+.danger-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 88rpx;
+  border-radius: 999rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.primary-button {
+  background: linear-gradient(135deg, #ee9475, #df7b68);
+  color: #fff;
+  box-shadow: 0 12rpx 24rpx rgba(222, 120, 96, 0.22);
+}
+
+.secondary-button {
+  border: 1rpx solid #edcfc2;
+  background: #fffaf6;
+  color: #b66f58;
+}
+
+.danger-button {
+  border: 1rpx solid #f0c1c1;
+  background: #fff5f5;
+  color: #bd5353;
+}
+
+button::after {
+  border: 0;
+}
+
+.field {
+  margin-bottom: 26rpx;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 12rpx;
+  color: #786d65;
+  font-size: 25rpx;
+  font-weight: 600;
+}
+
+.input,
+.textarea,
+.picker-box {
+  width: 100%;
+  border: 1rpx solid var(--line);
+  border-radius: 20rpx;
+  background: #fff;
+  color: var(--ink);
+  font-size: 28rpx;
+}
+
+.input,
+.picker-box {
+  min-height: 84rpx;
+  padding: 0 24rpx;
+  line-height: 84rpx;
+}
+
+.textarea {
+  min-height: 180rpx;
+  padding: 22rpx 24rpx;
+  line-height: 1.65;
+}
+
+.pill-row {
+  display: flex;
+  gap: 14rpx;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.pill {
+  flex: 0 0 auto;
+  padding: 14rpx 24rpx;
+  border: 1rpx solid var(--line);
+  border-radius: 999rpx;
+  background: #fff;
+  color: var(--muted);
+  font-size: 26rpx;
+}
+
+.pill.active {
+  border-color: #efb7a2;
+  background: #fff0e9;
+  color: #c66e52;
+  font-weight: 600;
+}
+
+.empty-state {
+  padding: 80rpx 40rpx;
+  text-align: center;
+  color: var(--muted);
+}
+
+.empty-icon {
+  display: block;
+  margin-bottom: 16rpx;
+  font-size: 72rpx;
+}
+
+.meta {
+  color: var(--muted);
+  font-size: 24rpx;
+}

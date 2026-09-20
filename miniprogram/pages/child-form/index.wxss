@@ -1,0 +1,10 @@
+.child-form-page { padding-bottom: 70rpx; }
+.form-hero { display: flex; align-items: center; flex-direction: column; padding: 24rpx 0 32rpx; }
+.avatar-preview { display: flex; align-items: center; justify-content: center; width: 126rpx; height: 126rpx; margin-bottom: 18rpx; border: 10rpx solid rgba(255,255,255,.75); border-radius: 50%; box-shadow: 0 10rpx 26rpx rgba(82,61,48,.12); color: #fff; font-size: 48rpx; font-weight: 700; }
+.form-hero-title { margin-bottom: 8rpx; font-family: serif; font-size: 37rpx; font-weight: 700; }
+.form-card { padding: 30rpx 28rpx; }
+.color-field { margin-bottom: 0; }
+.color-row { display: flex; gap: 22rpx; padding-top: 8rpx; }
+.color-dot { width: 60rpx; height: 60rpx; border: 7rpx solid #fff; border-radius: 50%; box-shadow: 0 0 0 1rpx #e5dad1; }
+.color-dot.active { box-shadow: 0 0 0 5rpx #e4b19d; }
+.save-button { margin-top: 30rpx; }

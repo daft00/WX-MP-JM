@@ -1,0 +1,41 @@
+<view class="page child-form-page">
+  <view class="form-hero">
+    <view class="avatar-preview" style="background: {{avatarColor}};">{{nameInitial}}</view>
+    <text class="form-hero-title">{{id ? '完善宝宝档案' : '欢迎一位小小新成员'}}</text>
+    <text class="meta">这些信息只用于成长记录展示</text>
+  </view>
+
+  <view class="prototype-banner">当前档案仅保存在本机原型中，不会上传到任何服务器。</view>
+
+  <view class="form-card card">
+    <view class="field">
+      <text class="field-label">宝宝昵称</text>
+      <input class="input" value="{{name}}" maxlength="12" placeholder="例如：乐乐" bindinput="inputName" />
+    </view>
+    <view class="field">
+      <text class="field-label">出生日期</text>
+      <picker mode="date" value="{{birthday}}" end="{{maxDate}}" bindchange="changeBirthday">
+        <view class="picker-box">{{birthday}}</view>
+      </picker>
+    </view>
+    <view class="field">
+      <text class="field-label">家庭称呼</text>
+      <input class="input" value="{{genderLabel}}" maxlength="8" placeholder="例如：宝宝、姐姐、弟弟" bindinput="inputGender" />
+    </view>
+    <view class="field color-field">
+      <text class="field-label">档案颜色</text>
+      <view class="color-row">
+        <view
+          wx:for="{{colors}}"
+          wx:key="*this"
+          class="color-dot {{avatarColor === item ? 'active' : ''}}"
+          style="background: {{item}};"
+          data-color="{{item}}"
+          bindtap="chooseColor"
+        ></view>
+      </view>
+    </view>
+  </view>
+
+  <button class="primary-button save-button" loading="{{saving}}" bindtap="save">保存宝宝档案</button>
+</view>

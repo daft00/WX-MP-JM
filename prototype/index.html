@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="成长日记微信小程序 HTML 交互原型" />
+    <title>成长日记 · HTML 原型</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="prototype-stage">
+      <aside class="review-rail" aria-label="原型检查说明">
+        <div class="brand-lockup">
+          <span class="brand-mark">长</span>
+          <div>
+            <strong>成长日记</strong>
+            <span>HTML 交互原型</span>
+          </div>
+        </div>
+        <div class="review-copy">
+          <p class="eyebrow">PROTOTYPE REVIEW</p>
+          <h1>先看体验，<br />再决定怎么改。</h1>
+          <p>右侧模拟一台手机。四个底部标签、记录详情、身份权限、发布和导出状态均可点击体验。</p>
+        </div>
+        <div class="review-list">
+          <h2>建议重点检查</h2>
+          <button type="button" data-jump="wall"><span>01</span>成长墙的信息密度</button>
+          <button type="button" data-jump="publish"><span>02</span>发布流程是否够简单</button>
+          <button type="button" data-jump="growth"><span>03</span>成长指标是否有价值</button>
+          <button type="button" data-jump="profile"><span>04</span>权限与备份表达是否清晰</button>
+        </div>
+        <p class="review-note">原型数据保存在浏览器本地。不会上传照片，不连接腾讯云或夸克网盘。</p>
+      </aside>
+
+      <section class="phone-shell" aria-label="成长日记手机原型">
+        <div class="phone-status" aria-hidden="true">
+          <span>9:41</span>
+          <span class="dynamic-island"></span>
+          <span>● ● ▰</span>
+        </div>
+
+        <section class="context-gate" id="context-gate" aria-label="选择家庭和宝宝">
+          <div class="gate-brand"><span>长</span><div><strong>成长日记</strong><small>GROWTH DIARY</small></div></div>
+          <div class="gate-step" id="family-step">
+            <p class="eyebrow coral">第一步 · 选择家庭</p>
+            <h2>今天要进入哪个<br /><em>家庭空间</em>？</h2>
+            <p>每个家庭拥有独立的宝宝、成员、记录与素材。</p>
+            <div class="gate-family-list" id="gate-family-list"></div>
+            <button class="gate-outline" type="button" id="create-family">＋ 创建新的家庭空间</button>
+          </div>
+          <div class="gate-step" id="child-step" hidden>
+            <button class="gate-back" type="button" id="back-family">‹ 返回选择家庭</button>
+            <p class="eyebrow coral">第二步 · 选择宝宝</p>
+            <h2>进入<span id="gate-family-name"></span>，<br />记录谁的成长？</h2>
+            <p>进入后可以在当前家庭内随时切换宝宝。</p>
+            <div class="gate-child-grid" id="gate-child-grid"></div>
+          </div>
+          <small class="gate-footnote">本地演示模式 · 不会上传真实家庭资料</small>
+        </section>
+
+        <div class="app-viewport">
+          <section class="screen active" id="screen-wall" data-screen="wall" aria-label="成长墙">
+            <button class="wall-context" type="button" id="wall-change-family">
+              <span class="wall-home">⌂</span>
+              <span><small>当前家庭</small><strong id="wall-context-value">暖暖一家 · 乐乐</strong></span>
+              <b>切换家庭 ›</b>
+            </button>
+            <header class="hero">
+              <div>
+                <p class="hero-kicker" id="wall-family-name">暖暖一家</p>
+                <h2>把成长的每一天，<br />轻轻收藏起来</h2>
+              </div>
+              <span class="sun">☀</span>
+            </header>
+            <div class="screen-content wall-content">
+              <div class="prototype-warning">演示数据仅保存在本机，不具备云端备份能力。</div>
+              <div class="chip-row" id="child-filter" aria-label="宝宝筛选"></div>
+              <div class="timeline" id="timeline"></div>
+            </div>
+          </section>
+
+          <section class="screen" id="screen-publish" data-screen="publish" aria-label="发布记录">
+            <div class="screen-content publish-content">
+              <header class="page-heading">
+                <p class="eyebrow coral">NEW MEMORY</p>
+                <h2>今天，有什么<br />值得记住？</h2>
+              </header>
+              <div class="prototype-warning">这是交互演示，不会上传或长期保存真实素材。</div>
+
+              <div class="segmented" id="entry-kind">
+                <button class="active" type="button" data-kind="DIARY">☁ 生活日记</button>
+                <button type="button" data-kind="MILESTONE">✦ 成长里程碑</button>
+              </div>
+
+              <form class="form-card" id="publish-form">
+                <label>记录给谁<select id="publish-child"></select></label>
+                <label>成长日期<input id="publish-date" type="date" required /></label>
+                <label>标题 <small><span id="title-count">0</span>/60</small><input id="publish-title" maxlength="60" placeholder="例如：第一次叫妈妈" required /></label>
+                <label>写下这一刻 <small><span id="body-count">0</span>/2000</small><textarea id="publish-body" maxlength="2000" placeholder="把当时的心情、宝宝的反应都记下来…"></textarea></label>
+
+                <div class="milestone-fields" id="milestone-fields" hidden>
+                  <label>自定义事件<input id="custom-event" placeholder="例如：第一次微笑" /></label>
+                  <fieldset>
+                    <legend>成长指标（可选）</legend>
+                    <div class="metric-picker" id="metric-picker">
+                      <button type="button" data-metric="HEIGHT">身高</button>
+                      <button type="button" data-metric="WEIGHT">体重</button>
+                      <button type="button" data-metric="HEAD">头围</button>
+                    </div>
+                    <div class="metric-value" id="metric-value-wrap" hidden>
+                      <input id="metric-value" type="number" min="0" step="0.1" placeholder="数值" />
+                      <span id="metric-unit">cm</span>
+                    </div>
+                  </fieldset>
+                </div>
+
+                <div class="media-picker">
+                  <div><strong>照片与视频</strong><small>0/9</small></div>
+                  <button type="button" id="mock-media">＋<span>添加演示素材</span></button>
+                  <p id="media-hint">未添加素材</p>
+                </div>
+                <button class="primary-action" type="submit">收藏这段成长</button>
+              </form>
+            </div>
+          </section>
+
+          <section class="screen" id="screen-growth" data-screen="growth" aria-label="成长数据">
+            <div class="screen-content growth-content">
+              <header class="page-heading growth-heading">
+                <div>
+                  <p class="eyebrow green">GROWING UP</p>
+                  <h2>每一点变化，<br />都有迹可循</h2>
+                </div>
+                <span class="sprout">🌱</span>
+              </header>
+              <div class="prototype-warning">成长趋势仅用于原型展示，不构成医疗建议。</div>
+              <div class="chip-row" id="growth-child-filter"></div>
+              <div class="metric-tabs" id="metric-tabs">
+                <button class="active" type="button" data-type="HEIGHT"><span>↕</span>身高<small id="height-count">0次</small></button>
+                <button type="button" data-type="WEIGHT"><span>⚖</span>体重<small id="weight-count">0次</small></button>
+                <button type="button" data-type="HEAD"><span>○</span>头围<small id="head-count">0次</small></button>
+              </div>
+              <div class="latest-card">
+                <div><small>最近一次记录</small><strong id="latest-value">暂无记录</strong><span id="latest-date">还没有成长数据</span></div>
+                <span>✦</span>
+              </div>
+              <div class="chart-card">
+                <div class="card-title"><strong>成长趋势</strong><small id="chart-unit">单位：cm</small></div>
+                <div class="chart" id="growth-chart"></div>
+              </div>
+              <button class="primary-action" type="button" data-jump="publish">＋ 添加一次成长记录</button>
+            </div>
+          </section>
+
+          <section class="screen" id="screen-profile" data-screen="profile" aria-label="我的家庭">
+            <div class="screen-content profile-content">
+              <div class="profile-hero">
+                <span class="profile-avatar" id="profile-avatar">妈</span>
+                <div><strong id="profile-name">妈妈</strong><small id="profile-role">暖暖一家 · 家庭创建者</small></div>
+                <span class="prototype-pill">原型</span>
+              </div>
+              <div class="prototype-warning">切换演示身份，检查不同角色的权限与提示。</div>
+
+              <h3>切换演示身份</h3>
+              <div class="identity-grid" id="identity-grid"></div>
+
+              <div class="section-heading"><h3>宝宝档案</h3><button type="button" id="add-child">＋ 新增宝宝</button></div>
+              <div class="child-list" id="profile-children"></div>
+
+              <div class="section-heading"><h3>家庭成员</h3><button type="button" id="create-invite">＋ 邀请家人</button></div>
+              <div class="member-list" id="member-list"></div>
+              <div class="invite-card" id="invite-card" hidden></div>
+
+              <h3>素材与数据</h3>
+              <div class="menu-card">
+                <button type="button" id="open-export"><span class="menu-icon green-bg">⇩</span><span><strong>素材导出</strong><small>按宝宝和月份模拟分卷导出</small></span><b>›</b></button>
+                <button type="button" id="reset-demo"><span class="menu-icon rose-bg">↻</span><span><strong>重置演示数据</strong><small>恢复为项目初始示例</small></span><b>›</b></button>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <nav class="tab-bar" aria-label="主导航">
+          <button class="active" type="button" data-target="wall"><span>⌂</span>成长墙</button>
+          <button type="button" data-target="publish"><span>＋</span>发布</button>
+          <button type="button" data-target="growth"><span>⌁</span>成长数据</button>
+          <button type="button" data-target="profile"><span>○</span>我的</button>
+        </nav>
+      </section>
+    </main>
+
+    <dialog class="app-dialog" id="entry-dialog">
+      <button class="dialog-close" type="button" data-close="entry-dialog" aria-label="关闭">×</button>
+      <div id="entry-detail"></div>
+    </dialog>
+
+    <dialog class="app-dialog export-dialog" id="export-dialog">
+      <button class="dialog-close" type="button" data-close="export-dialog" aria-label="关闭">×</button>
+      <p class="eyebrow green">MANUAL ARCHIVE</p>
+      <h2>素材导出</h2>
+      <p class="dialog-intro">这里只模拟导出任务，不生成真实 ZIP，也不会连接夸克网盘。</p>
+      <form id="export-form" class="dialog-form">
+        <label>选择宝宝<select id="export-child"></select></label>
+        <label>选择月份<input id="export-month" type="month" required /></label>
+        <button class="primary-action" type="submit">生成演示导出</button>
+      </form>
+      <div id="export-list" class="export-list"></div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,44 @@
+<view class="page export-page">
+  <view class="export-hero">
+    <text class="export-kicker">MANUAL ARCHIVE</text>
+    <text class="export-title">把珍贵原件，<text class="title-break">带到另一份安心里</text></text>
+  </view>
+
+  <view class="prototype-banner">当前只模拟导出任务，不生成 ZIP、不连接夸克网盘，也无法验证任何备份结果。</view>
+
+  <view class="create-card card">
+    <text class="create-title">新建按月导出</text>
+    <view class="field">
+      <text class="field-label">选择宝宝</text>
+      <picker mode="selector" range="{{children}}" range-key="name" value="{{childIndex}}" bindchange="changeChild">
+        <view class="picker-box">{{children[childIndex].name || '暂无宝宝档案'}}</view>
+      </picker>
+    </view>
+    <view class="field">
+      <text class="field-label">选择月份</text>
+      <picker mode="date" fields="month" value="{{selectedMonth}}" bindchange="changeMonth">
+        <view class="picker-box">{{selectedMonth}}</view>
+      </picker>
+    </view>
+    <button class="primary-button" disabled="{{!isAdmin}}" loading="{{creating}}" bindtap="createExport">生成演示导出任务</button>
+    <text wx:if="{{!isAdmin}}" class="permission-note">当前为普通成员，只有管理员可以创建导出。</text>
+  </view>
+
+  <text class="section-title">导出记录</text>
+  <view wx:if="{{jobs.length}}" class="job-list">
+    <view wx:for="{{jobs}}" wx:key="id" class="job-card card">
+      <view class="job-top">
+        <view><text class="job-name">{{item.childName}} · {{item.yearMonth}}</text><text class="meta">创建于 {{item.createdLabel}}</text></view>
+        <text class="status status-{{item.status}}">{{item.statusLabel}}</text>
+      </view>
+      <view class="job-info">
+        <text>模拟分卷：{{item.partCount}} 个</text>
+        <text>演示失效时间：{{item.expiresLabel}}</text>
+      </view>
+      <button wx:if="{{item.canDownload}}" class="secondary-button job-button" data-id="{{item.id}}" bindtap="simulateDownload">模拟下载 ZIP</button>
+      <button wx:if="{{item.canConfirm}}" class="secondary-button job-button" data-id="{{item.id}}" bindtap="confirmBackup">确认已人工上传夸克</button>
+      <view wx:if="{{item.status === 'CONFIRMED'}}" class="confirmed-note">✓ 此状态来自用户人工确认，未经夸克验证</view>
+    </view>
+  </view>
+  <view wx:else class="empty-state card"><text class="empty-icon">📦</text><text>还没有导出记录</text></view>
+</view>

@@ -1,0 +1,75 @@
+<view class="page profile-page" wx:if="{{session}}">
+  <view class="profile-hero card">
+    <view class="profile-avatar">{{session.user.avatarText}}</view>
+    <view class="profile-copy">
+      <text class="profile-name">{{session.user.nickname}}</text>
+      <text class="profile-family">{{session.family.name}} · {{session.membership.role}}</text>
+    </view>
+    <view class="prototype-tag">原型模式</view>
+  </view>
+
+  <view class="prototype-banner">可切换三种演示身份检查权限。这里不是微信真实登录，所有信息只保存在本机。</view>
+
+  <text class="section-title">切换演示身份</text>
+  <view class="identity-grid">
+    <view
+      wx:for="{{sessions}}"
+      wx:key="userId"
+      class="identity-card {{item.active ? 'active' : ''}}"
+      data-id="{{item.user.id}}"
+      bindtap="switchUser"
+    >
+      <view class="identity-avatar">{{item.user.avatarText}}</view>
+      <text class="identity-name">{{item.user.nickname}}</text>
+      <text class="identity-role">{{item.roleLabel}}</text>
+    </view>
+  </view>
+
+  <view class="section-row">
+    <text class="section-title">宝宝档案</text>
+    <text wx:if="{{isAdmin}}" class="section-action" bindtap="addChild">＋ 新增宝宝</text>
+  </view>
+  <view class="children-list">
+    <view wx:for="{{children}}" wx:key="id" class="child-card card" data-id="{{item.id}}" bindtap="editChild">
+      <view class="child-avatar" style="background: {{item.avatarColor}};">{{item.initial}}</view>
+      <view class="child-copy">
+        <text class="child-name">{{item.name}} · {{item.genderLabel}}</text>
+        <text class="meta">{{item.ageLabel}} · {{item.birthday}}出生</text>
+      </view>
+      <text class="chevron">›</text>
+    </view>
+  </view>
+
+  <view class="section-row">
+    <text class="section-title">家庭成员</text>
+    <text wx:if="{{isAdmin}}" class="section-action" bindtap="createInvite">＋ 邀请家人</text>
+  </view>
+  <view class="member-card card">
+    <view wx:for="{{members}}" wx:key="id" class="member-row">
+      <view class="member-avatar">{{item.user.avatarText}}</view>
+      <text class="member-name">{{item.user.nickname}}</text>
+      <text class="role-chip role-{{item.role}}">{{item.roleLabel}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{latestInvite}}" class="invite-card card">
+    <text class="invite-label">一次性家庭邀请码</text>
+    <text class="invite-code">{{latestInvite.code}}</text>
+    <text class="meta">有效至 {{latestInvite.expiresLabel}}</text>
+    <button class="secondary-button copy-button" bindtap="copyInvite">复制邀请码</button>
+  </view>
+
+  <text class="section-title">素材与数据</text>
+  <view class="menu-card card">
+    <view class="menu-row" bindtap="openExport">
+      <view class="menu-icon export-icon">⇩</view>
+      <view class="menu-copy"><text class="menu-title">素材导出</text><text class="meta">按宝宝和月份模拟分卷导出</text></view>
+      <text class="chevron">›</text>
+    </view>
+    <view class="menu-row" bindtap="resetData">
+      <view class="menu-icon reset-icon">↻</view>
+      <view class="menu-copy"><text class="menu-title">重置演示数据</text><text class="meta">恢复为项目初始示例</text></view>
+      <text class="chevron">›</text>
+    </view>
+  </view>
+</view>

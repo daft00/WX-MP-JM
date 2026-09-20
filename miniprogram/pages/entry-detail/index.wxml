@@ -1,0 +1,42 @@
+<view class="page detail-page" wx:if="{{entry}}">
+  <view class="prototype-banner">本页展示的是本地演示数据，不代表素材已经上传或备份。</view>
+
+  <view class="detail-head">
+    <view class="detail-avatar" style="background: {{childColor}};">{{childInitial}}</view>
+    <view class="detail-head-copy">
+      <text class="detail-child">{{childName}} · {{ageLabel}}</text>
+      <text class="meta">{{dateLabel}} · {{authorName}}记录</text>
+    </view>
+  </view>
+
+  <view class="detail-content card">
+    <text class="detail-kind">{{entry.kind === 'MILESTONE' ? '成长里程碑' : '生活日记'}}</text>
+    <text class="detail-title">{{entry.title}}</text>
+    <view wx:if="{{metricLabel}}" class="metric-panel">📏 {{metricLabel}}</view>
+    <view wx:if="{{entry.customEvent}}" class="event-panel">🎈 {{entry.customEvent}}</view>
+    <text class="detail-body">{{entry.body}}</text>
+  </view>
+
+  <view wx:if="{{assets.length}}" class="detail-media">
+    <view wx:for="{{assets}}" wx:key="id" class="detail-media-item tone-{{item.placeholderTone}}">
+      <image
+        wx:if="{{item.kind === 'IMAGE' && item.localPath}}"
+        src="{{item.localPath}}"
+        mode="widthFix"
+        data-path="{{item.localPath}}"
+        bindtap="previewImage"
+      />
+      <video wx:elif="{{item.kind === 'VIDEO' && item.localPath}}" src="{{item.localPath}}" poster="{{item.posterPath}}" controls />
+      <view wx:else class="detail-placeholder">
+        <text class="placeholder-icon">{{item.kind === 'VIDEO' ? '▶' : '✦'}}</text>
+        <text>{{item.name}}</text>
+        <text class="placeholder-note">演示素材占位</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="action-row">
+    <button wx:if="{{canEdit}}" class="secondary-button action-button" bindtap="editEntry">编辑记录</button>
+    <button wx:if="{{canDelete}}" class="danger-button action-button" bindtap="deleteEntry">永久删除</button>
+  </view>
+</view>

@@ -1,0 +1,29 @@
+.growth-page { padding-bottom: 70rpx; }
+.growth-head { display: flex; align-items: center; justify-content: space-between; padding: 18rpx 8rpx 32rpx; }
+.growth-head > view:first-child { display: flex; flex-direction: column; }
+.growth-kicker { margin-bottom: 10rpx; color: #73917a; font-size: 21rpx; font-weight: 700; letter-spacing: 5rpx; }
+.growth-title { font-family: serif; font-size: 43rpx; font-weight: 700; line-height: 1.4; }
+.title-break { display: block; }
+.sprout { width: 112rpx; height: 112rpx; border-radius: 50%; background: #e8f1e7; font-size: 56rpx; line-height: 112rpx; text-align: center; }
+.child-filter { margin: 26rpx 0; }
+.metric-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14rpx; }
+.metric-tab { display: flex; align-items: center; flex-direction: column; gap: 5rpx; padding: 20rpx 8rpx; border: 1rpx solid var(--line); border-radius: 20rpx; background: #fff; color: #897c73; }
+.metric-tab.active { border-color: #9ab6a0; background: #eff6ef; color: #52705a; font-weight: 700; }
+.metric-tab-icon { font-size: 35rpx; }
+.metric-count { color: #aaa097; font-size: 21rpx; font-weight: 400; }
+.latest-card { display: flex; align-items: center; justify-content: space-between; margin-top: 24rpx; padding: 30rpx; background: linear-gradient(145deg, #fffdf9, #fff2e8); }
+.latest-card > view:first-child { display: flex; flex-direction: column; }
+.latest-label { color: var(--muted); font-size: 23rpx; }
+.latest-value { margin: 8rpx 0; color: #d1775c; font-size: 52rpx; font-weight: 700; }
+.latest-mark { color: #e3a284; font-size: 60rpx; }
+.chart-card { margin-top: 24rpx; padding: 30rpx 24rpx; }
+.chart-heading { display: flex; align-items: center; justify-content: space-between; }
+.chart-title { font-size: 31rpx; font-weight: 700; }
+.chart { display: flex; align-items: flex-end; gap: 18rpx; height: 320rpx; margin-top: 30rpx; overflow-x: auto; }
+.chart-point { display: flex; align-items: center; flex: 1 0 96rpx; flex-direction: column; min-width: 96rpx; }
+.point-value { margin-bottom: 8rpx; color: #63806a; font-size: 23rpx; font-weight: 600; }
+.bar-track { display: flex; align-items: flex-end; justify-content: center; width: 40rpx; height: 190rpx; border-radius: 20rpx; background: #f0eee9; }
+.bar { width: 40rpx; min-height: 24rpx; border-radius: 20rpx; background: linear-gradient(180deg, #a9c0aa, #79a181); }
+.point-date { width: 100rpx; margin-top: 10rpx; overflow: hidden; color: #a09891; font-size: 19rpx; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.chart-empty { padding: 46rpx 20rpx 20rpx; }
+.add-button { margin-top: 30rpx; }

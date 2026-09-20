@@ -1,0 +1,32 @@
+.publish-page { padding-bottom: 70rpx; }
+.publish-heading { display: flex; flex-direction: column; padding: 16rpx 4rpx 30rpx; }
+.heading-kicker { margin-bottom: 10rpx; color: #c97a60; font-size: 21rpx; font-weight: 700; letter-spacing: 5rpx; }
+.heading-title { font-family: serif; font-size: 40rpx; font-weight: 700; }
+.kind-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 18rpx; margin: 26rpx 0; }
+.kind-option { display: flex; align-items: center; justify-content: center; gap: 12rpx; min-height: 90rpx; border: 1rpx solid var(--line); border-radius: 22rpx; background: #fff; color: var(--muted); }
+.kind-option.active { border-color: #e9ae96; background: #fff0e9; color: #bd684e; font-weight: 700; }
+.kind-icon { font-size: 34rpx; }
+.form-card { padding: 30rpx 28rpx; }
+.field-row { display: flex; justify-content: space-between; }
+.counter { color: #b6aaa1; font-size: 22rpx; }
+.picker-box { position: relative; }
+.picker-arrow { position: absolute; right: 24rpx; color: #b39d90; }
+.milestone-panel { margin: 10rpx -6rpx 28rpx; padding: 26rpx 22rpx 2rpx; border-radius: 22rpx; background: #fff6f1; }
+.metric-types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12rpx; }
+.metric-option { padding: 18rpx 8rpx; border: 1rpx solid #eadfd7; border-radius: 16rpx; background: #fff; color: #8e8177; text-align: center; }
+.metric-option.active { border-color: #93b09a; background: #eef6ef; color: #5d8067; font-weight: 600; }
+.metric-input-row { display: flex; align-items: center; margin-top: 14rpx; }
+.metric-input { flex: 1; }
+.metric-unit { width: 72rpx; color: #766a62; text-align: center; }
+.media-field { margin-bottom: 0; }
+.selected-media { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12rpx; }
+.selected-item, .add-media { position: relative; height: 180rpx; overflow: hidden; border-radius: 18rpx; }
+.selected-item image { width: 100%; height: 100%; }
+.selected-placeholder { display: flex; align-items: center; justify-content: center; height: 100%; color: #fff; font-size: 46rpx; }
+.add-media { display: flex; align-items: center; justify-content: center; flex-direction: column; border: 2rpx dashed #e7cabd; background: #fffaf7; color: #b57e68; font-size: 23rpx; }
+.add-icon { margin-bottom: 4rpx; font-size: 50rpx; font-weight: 300; }
+.remove-button { position: absolute; top: 8rpx; right: 8rpx; width: 40rpx; height: 40rpx; border-radius: 50%; background: rgba(44, 35, 31, 0.66); color: #fff; font-size: 30rpx; line-height: 38rpx; text-align: center; }
+.tone-peach { background: linear-gradient(145deg, #f8c7b7, #f2a78f); }
+.tone-sage { background: linear-gradient(145deg, #c6d7c1, #88aa91); }
+.tone-rose { background: linear-gradient(145deg, #efd0d7, #d996a5); }
+.submit-button { margin-top: 32rpx; }
