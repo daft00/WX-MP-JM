@@ -15,6 +15,7 @@ interface ChildView extends Child {
 
 interface MemberView extends FamilyMember {
   roleLabel: string;
+  canManage: boolean;
 }
 
 Page({
@@ -57,7 +58,14 @@ Page({
           ageLabel: calculateAge(child.birthday),
           initial: child.name.slice(0, 1),
         })),
-        members: members.map((member) => ({ ...member, roleLabel: this.roleLabel(member.role) })),
+        members: members.map((member) => ({
+          ...member,
+          roleLabel: this.roleLabel(member.role),
+          canManage: member.userId !== session.user.id
+            && member.role !== "OWNER"
+            && (session.membership.role === "OWNER"
+              || (session.membership.role === "ADMIN" && member.role === "MEMBER")),
+        })),
         isAdmin: session.membership.role === "OWNER" || session.membership.role === "ADMIN",
       });
     } catch (error) {
@@ -98,6 +106,52 @@ Page({
     if (this.data.latestInvite) {
       wx.setClipboardData({ data: this.data.latestInvite.code });
     }
+  },
+
+  manageMember(event: WechatMiniprogram.TouchEvent) {
+    const member = this.data.members.find((item) => item.id === event.currentTarget.dataset.id);
+    const session = this.data.session;
+    if (!member || !member.canManage || !session) return;
+
+    const canChangeRole = session.membership.role === "OWNER";
+    const roleAction = member.role === "ADMIN" ? "设为普通成员" : "设为管理员";
+    const itemList = canChangeRole ? [roleAction, "移除成员"] : ["移除成员"];
+    wx.showActionSheet({
+      itemList,
+      success: async (result) => {
+        if (canChangeRole && result.tapIndex === 0) {
+          try {
+            await services.family.updateMemberRole(member.id, member.role === "ADMIN" ? "MEMBER" : "ADMIN");
+            wx.showToast({ title: "角色已更新", icon: "success" });
+            await this.loadProfile();
+          } catch (error) {
+            wx.showToast({ title: error instanceof Error ? error.message : "调整失败", icon: "none" });
+          }
+          return;
+        }
+        const removeIndex = canChangeRole ? 1 : 0;
+        if (result.tapIndex === removeIndex) this.confirmRemoveMember(member);
+      },
+    });
+  },
+
+  confirmRemoveMember(member: MemberView) {
+    wx.showModal({
+      title: `移除${member.user.nickname}？`,
+      content: "移除后，该成员将不能查看这个家庭的宝宝照片和记录。",
+      confirmText: "确认移除",
+      confirmColor: "#BD5353",
+      success: async (result) => {
+        if (!result.confirm) return;
+        try {
+          await services.family.removeMember(member.id);
+          wx.showToast({ title: "成员已移除", icon: "success" });
+          await this.loadProfile();
+        } catch (error) {
+          wx.showToast({ title: error instanceof Error ? error.message : "移除失败", icon: "none" });
+        }
+      },
+    });
   },
 
   openExport() {

@@ -45,10 +45,11 @@
     <text wx:if="{{isAdmin}}" class="section-action" bindtap="createInvite">＋ 邀请家人</text>
   </view>
   <view class="member-card card">
-    <view wx:for="{{members}}" wx:key="id" class="member-row">
+    <view wx:for="{{members}}" wx:key="id" class="member-row" data-id="{{item.id}}" bindtap="manageMember">
       <view class="member-avatar">{{item.user.avatarText}}</view>
       <text class="member-name">{{item.user.nickname}}</text>
       <text class="role-chip role-{{item.role}}">{{item.roleLabel}}</text>
+      <text wx:if="{{item.canManage}}" class="manage-member">管理 ›</text>
     </view>
   </view>
 

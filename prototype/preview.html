@@ -1,0 +1,1212 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="成长日记微信小程序 HTML 交互原型" />
+    <title>成长日记 · HTML 原型</title>
+    <style>
+:root {
+  --cream: #fff9f2;
+  --paper: #fffdf9;
+  --coral: #e88163;
+  --coral-deep: #c9684f;
+  --coral-soft: #fff0e9;
+  --rose: #d991a2;
+  --ink: #403731;
+  --muted: #8e8178;
+  --line: #eadfd6;
+  --green: #73917a;
+  --green-soft: #edf5ee;
+  --shadow: 0 22px 60px rgba(65, 45, 33, 0.14);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+  color: var(--ink);
+  background: #ece6df;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: radial-gradient(circle at 18% 12%, #fff8ef 0 8%, transparent 34%), linear-gradient(135deg, #e9e2da, #f5f0ea); }
+button, input, textarea, select { font: inherit; }
+button { color: inherit; }
+
+.prototype-stage { display: grid; grid-template-columns: minmax(300px, 470px) 430px; align-items: center; justify-content: center; gap: clamp(36px, 7vw, 110px); min-height: 100vh; padding: 38px; }
+.review-rail { max-width: 460px; }
+.brand-lockup { display: flex; align-items: center; gap: 13px; margin-bottom: 72px; }
+.brand-mark { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 15px; background: var(--ink); color: #fffaf4; font-family: Georgia, serif; font-size: 22px; }
+.brand-lockup div { display: flex; flex-direction: column; gap: 2px; }
+.brand-lockup strong { font-size: 17px; }
+.brand-lockup span:last-child { color: var(--muted); font-size: 12px; letter-spacing: .08em; }
+.eyebrow { margin: 0 0 12px; color: #8b776a; font-size: 11px; font-weight: 800; letter-spacing: .22em; }
+.eyebrow.coral { color: var(--coral-deep); }
+.eyebrow.green { color: var(--green); }
+.review-copy h1 { margin: 0; font-family: Georgia, "Songti SC", serif; font-size: clamp(46px, 5vw, 72px); line-height: 1.08; letter-spacing: -.04em; }
+.review-copy > p:last-child { max-width: 430px; margin: 24px 0 32px; color: #75685f; font-size: 16px; line-height: 1.8; }
+.review-list { padding-top: 22px; border-top: 1px solid rgba(93, 75, 64, .18); }
+.review-list h2 { margin: 0 0 14px; font-size: 13px; letter-spacing: .08em; }
+.review-list button { display: flex; align-items: center; gap: 15px; width: 100%; padding: 12px 0; border: 0; background: transparent; color: #5e5149; text-align: left; cursor: pointer; }
+.review-list button:hover { color: var(--coral-deep); transform: translateX(3px); }
+.review-list button span { color: #a3958a; font-size: 11px; font-weight: 800; letter-spacing: .12em; }
+.review-note { margin-top: 28px; padding: 14px 16px; border-left: 3px solid #e2a088; background: rgba(255, 252, 248, .52); color: #796b62; font-size: 12px; line-height: 1.65; }
+
+.phone-shell { position: relative; width: 430px; height: min(890px, calc(100vh - 44px)); min-height: 670px; overflow: hidden; border: 10px solid #282421; border-radius: 48px; background: var(--cream); box-shadow: 0 30px 80px rgba(56, 40, 31, .28), inset 0 0 0 1px #5f5752; }
+.phone-status { position: absolute; top: 0; left: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; width: 100%; height: 38px; padding: 0 24px; background: rgba(255, 249, 242, .88); font-size: 10px; font-weight: 750; backdrop-filter: blur(12px); }
+.dynamic-island { position: absolute; top: 8px; left: 50%; width: 94px; height: 22px; border-radius: 999px; background: #181615; transform: translateX(-50%); }
+.app-viewport { position: absolute; inset: 38px 0 70px; overflow: hidden; }
+.context-gate { position: absolute; inset: 38px 0 0; z-index: 14; overflow-y: auto; padding: 25px 23px 46px; background: radial-gradient(circle at 95% 0, #f7d4c7 0 12%, transparent 37%), radial-gradient(circle at 0 88%, #e3eddf 0 10%, transparent 34%), linear-gradient(180deg, #fffaf4, #fff7ef); }
+.context-gate[hidden] { display: none; }
+.gate-brand { display: flex; align-items: center; gap: 10px; }
+.gate-brand > span { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 14px; background: #443a34; color: #fffaf4; font-family: Georgia, serif; font-size: 18px; font-weight: 700; }
+.gate-brand div { display: flex; flex-direction: column; gap: 1px; }
+.gate-brand strong { font-size: 14px; }
+.gate-brand small { color: #9e8c80; font-size: 8px; letter-spacing: .16em; }
+.gate-step { padding-top: 34px; }
+.gate-account-switch { margin-bottom: 26px; padding: 12px; border: 1px solid rgba(226,205,192,.88); border-radius: 14px; background: rgba(255,255,255,.7); }
+.gate-account-switch > small { display: block; margin-bottom: 9px; color: var(--muted); font-size: 9px; }
+.gate-account-switch > div { display: flex; gap: 7px; }
+.gate-account-switch button { flex: 1; padding: 7px 4px; border: 0; border-radius: 999px; background: #f4eee9; color: #887970; font-size: 9px; cursor: pointer; }
+.gate-account-switch button.active { background: #f5d6c9; color: #a75d47; font-weight: 800; }
+.gate-system-admin { display: flex; align-items: center; width: 100%; margin: -12px 0 24px; padding: 12px; border: 0; border-radius: 15px; background: #443a34; box-shadow: 0 7px 18px rgba(68,58,52,.2); color: #fffaf4; text-align: left; cursor: pointer; }
+.gate-system-admin[hidden] { display: none; }
+.gate-system-admin > span:first-child { display: grid; place-items: center; width: 36px; height: 36px; margin-right: 9px; border-radius: 10px; background: var(--coral); font-size: 12px; font-weight: 800; }
+.gate-system-admin > span:nth-child(2) { display: flex; flex: 1; flex-direction: column; gap: 2px; }
+.gate-system-admin strong { font-size: 11px; }
+.gate-system-admin small { color: #d8cdc6; font-size: 8px; }
+.gate-system-admin b { font-size: 19px; font-weight: 400; }
+.gate-step h2 { margin: 0; font-family: Georgia, "Songti SC", serif; font-size: 31px; line-height: 1.4; letter-spacing: -.03em; }
+.gate-step h2 em, .gate-step h2 span { color: #c96f54; font-style: normal; }
+.gate-step > p:not(.eyebrow) { margin: 13px 0 26px; color: var(--muted); font-size: 12px; line-height: 1.65; }
+.gate-family-list { display: flex; flex-direction: column; gap: 11px; }
+.gate-family-card { display: flex; align-items: center; width: 100%; padding: 15px; border: 1px solid rgba(226,205,192,.88); border-radius: 18px; background: rgba(255,255,255,.9); box-shadow: 0 8px 22px rgba(92,64,47,.07); text-align: left; cursor: pointer; }
+.gate-family-card .family-symbol { display: grid; place-items: center; width: 47px; height: 47px; margin-right: 12px; border-radius: 15px; color: #fff; font-size: 17px; font-weight: 800; }
+.gate-family-card > span:nth-child(2) { display: flex; flex: 1; flex-direction: column; gap: 3px; }
+.gate-family-card strong { font-size: 14px; }
+.gate-family-card small { color: var(--muted); font-size: 9px; }
+.gate-family-card b { color: #b8a79d; font-size: 22px; font-weight: 400; }
+.gate-outline { width: 100%; margin-top: 13px; padding: 13px; border: 1px dashed #dcae9a; border-radius: 16px; background: rgba(255,250,246,.76); color: #ae6650; font-size: 11px; font-weight: 700; cursor: pointer; }
+.gate-join { width: 100%; margin-top: 8px; padding: 13px; border: 0; border-radius: 16px; background: #443a34; color: #fffaf4; font-size: 11px; font-weight: 700; cursor: pointer; }
+.gate-back { margin: -28px 0 30px; padding: 0; border: 0; background: transparent; color: #9e6755; font-size: 11px; cursor: pointer; }
+.gate-child-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 11px; }
+.gate-child-card { display: flex; align-items: center; flex-direction: column; padding: 17px 8px 14px; border: 1px solid rgba(226,205,192,.88); border-radius: 18px; background: rgba(255,255,255,.92); box-shadow: 0 8px 22px rgba(92,64,47,.06); cursor: pointer; }
+.gate-child-card .baby-symbol { display: grid; place-items: center; width: 63px; height: 63px; margin-bottom: 9px; border: 6px solid rgba(255,255,255,.7); border-radius: 50%; box-shadow: 0 5px 12px rgba(64,47,37,.1); color: #fff; font-size: 20px; font-weight: 800; }
+.gate-child-card strong { font-size: 13px; }
+.gate-child-card small { margin-top: 3px; color: var(--muted); font-size: 9px; }
+.gate-child-card em { margin-top: 11px; padding: 5px 9px; border-radius: 999px; background: var(--coral-soft); color: var(--coral-deep); font-size: 8px; font-style: normal; font-weight: 700; }
+.gate-empty-child { display: flex; align-items: center; grid-column: 1 / -1; flex-direction: column; gap: 8px; padding: 28px 12px; border: 1px dashed #dcae9a; border-radius: 18px; background: rgba(255,255,255,.72); color: #8a766b; cursor: pointer; }
+.gate-empty-child strong { font-size: 12px; }
+.gate-empty-child small { color: var(--coral-deep); font-size: 9px; font-weight: 700; }
+.gate-footnote { position: absolute; right: 0; bottom: 18px; left: 0; color: #aa9b91; font-size: 9px; text-align: center; }
+.screen { display: none; width: 100%; height: 100%; overflow-y: auto; background: var(--cream); scrollbar-width: none; }
+.screen::-webkit-scrollbar { display: none; }
+.screen.active { display: block; animation: screen-in .22s ease-out; }
+@keyframes screen-in { from { opacity: .4; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.screen-content { padding: 22px 18px 34px; }
+.wall-context { display: flex; align-items: center; width: 100%; min-height: 58px; padding: 9px 16px; border: 0; border-bottom: 1px solid #eee3da; background: rgba(255,253,249,.97); text-align: left; cursor: pointer; }
+.wall-home { display: grid; place-items: center; width: 34px; height: 34px; margin-right: 9px; border-radius: 11px; background: var(--green-soft); color: var(--green); font-size: 17px; }
+.wall-context > span:nth-child(2) { display: flex; flex: 1; flex-direction: column; gap: 2px; }
+.wall-context small { color: #998a80; font-size: 8px; }
+.wall-context strong { color: #4e433d; font-size: 12px; }
+.wall-context b { color: var(--coral-deep); font-size: 10px; }
+.hero { display: flex; justify-content: space-between; min-height: 180px; padding: 31px 25px 25px; overflow: hidden; background: linear-gradient(145deg, #fff2e6, #f5d2c4); }
+.hero-kicker { margin: 0 0 11px; color: #ab6752; font-size: 11px; font-weight: 750; letter-spacing: .18em; }
+.hero h2, .page-heading h2 { margin: 0; font-family: Georgia, "Songti SC", serif; font-size: 29px; line-height: 1.43; letter-spacing: -.03em; }
+.sun, .sprout { display: grid; place-items: center; flex: 0 0 auto; width: 70px; height: 70px; border-radius: 50%; background: rgba(255,255,255,.56); font-size: 36px; }
+.prototype-warning { margin-bottom: 17px; padding: 11px 13px; border: 1px solid #efc7b8; border-radius: 13px; background: #fff0e9; color: #985843; font-size: 11px; line-height: 1.55; }
+.chip-row { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; scrollbar-width: none; }
+.chip-row button { flex: 0 0 auto; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--muted); font-size: 12px; cursor: pointer; }
+.chip-row button.active { border-color: #e9ae96; background: var(--coral-soft); color: var(--coral-deep); font-weight: 700; }
+
+.timeline { position: relative; padding-left: 16px; }
+.timeline::before { position: absolute; top: 12px; bottom: 20px; left: 4px; width: 1px; background: #e5d5ca; content: ""; }
+.timeline-item { position: relative; margin-bottom: 17px; }
+.timeline-dot { position: absolute; top: 22px; left: -17px; width: 12px; height: 12px; border: 3px solid var(--cream); border-radius: 50%; background: var(--coral); }
+.memory-card { overflow: hidden; border: 1px solid rgba(228, 210, 197, .8); border-radius: 20px; background: var(--paper); box-shadow: 0 8px 24px rgba(91, 63, 46, .07); cursor: pointer; transition: transform .18s, box-shadow .18s; }
+.memory-card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(91, 63, 46, .12); }
+.card-header { display: flex; align-items: center; padding: 15px; }
+.child-avatar { display: grid; place-items: center; width: 38px; height: 38px; margin-right: 10px; border-radius: 50%; color: #fff; font-size: 13px; font-weight: 800; }
+.card-person { display: flex; flex: 1; flex-direction: column; gap: 2px; }
+.card-person strong { font-size: 13px; }
+.card-person small, .memory-body small { color: var(--muted); font-size: 10px; }
+.type-pill { padding: 5px 8px; border-radius: 999px; background: var(--coral-soft); color: var(--coral-deep); font-size: 9px; }
+.mock-media { position: relative; display: grid; place-items: center; min-height: 185px; background: linear-gradient(145deg, #f8c7b7, #ef9d83); color: rgba(255,255,255,.95); font-size: 45px; }
+.mock-media.video { background: linear-gradient(145deg, #c6d7c1, #7fa489); }
+.mock-media.rose { background: linear-gradient(145deg, #efd0d7, #d68fa0); }
+.mock-media small { position: absolute; right: 10px; bottom: 10px; padding: 4px 8px; border-radius: 999px; background: rgba(45,39,35,.58); color: #fff; font-size: 9px; }
+.memory-body { padding: 15px; }
+.memory-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.memory-title-row h3 { margin: 0; font-size: 17px; }
+.metric-pill { flex: 0 0 auto; padding: 5px 7px; border-radius: 7px; background: var(--green-soft); color: #5d7c64; font-size: 10px; font-weight: 700; }
+.memory-body p { display: -webkit-box; margin: 9px 0 0; overflow: hidden; color: #665b54; font-size: 13px; line-height: 1.65; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.memory-meta { display: flex; justify-content: space-between; margin-top: 12px; color: #a27667; font-size: 10px; }
+
+.page-heading { margin: 4px 2px 20px; }
+.page-heading .eyebrow { margin-bottom: 7px; }
+.segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 15px; }
+.segmented button { min-height: 49px; border: 1px solid var(--line); border-radius: 14px; background: #fff; color: var(--muted); font-size: 12px; cursor: pointer; }
+.segmented button.active { border-color: #e8a991; background: var(--coral-soft); color: var(--coral-deep); font-weight: 700; }
+.form-card, .chart-card, .latest-card, .profile-hero, .child-row, .member-list, .menu-card { border: 1px solid rgba(228, 210, 197, .76); border-radius: 19px; background: var(--paper); box-shadow: 0 8px 24px rgba(91, 63, 46, .06); }
+.form-card { padding: 18px 16px; }
+.form-card label, .dialog-form label { position: relative; display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; color: #73675f; font-size: 11px; font-weight: 700; }
+.form-card label small { position: absolute; top: 0; right: 0; color: #b4a69c; font-weight: 500; }
+input, textarea, select { width: 100%; border: 1px solid var(--line); border-radius: 12px; outline: none; background: #fff; color: var(--ink); }
+input, select { height: 44px; padding: 0 12px; }
+textarea { min-height: 104px; padding: 12px; line-height: 1.6; resize: vertical; }
+input:focus, textarea:focus, select:focus { border-color: #dc9c84; box-shadow: 0 0 0 3px rgba(220, 156, 132, .12); }
+.milestone-fields { margin: 0 -3px 16px; padding: 14px 12px 1px; border-radius: 14px; background: #fff5f0; }
+fieldset { margin: 0 0 14px; padding: 0; border: 0; }
+legend { margin-bottom: 8px; color: #73675f; font-size: 11px; font-weight: 700; }
+.metric-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.metric-picker button { padding: 9px 4px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--muted); font-size: 11px; cursor: pointer; }
+.metric-picker button.active { border-color: #8fad95; background: var(--green-soft); color: #5b7963; font-weight: 700; }
+.metric-value { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.metric-value span { width: 30px; color: var(--muted); font-size: 12px; }
+.media-picker { margin-bottom: 18px; }
+.media-picker > div { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px; }
+.media-picker small { color: #aa9c92; font-weight: 500; }
+.media-picker button { display: flex; align-items: center; justify-content: center; flex-direction: column; width: 92px; height: 82px; border: 1px dashed #dfb8a8; border-radius: 12px; background: #fffaf7; color: #af735e; font-size: 24px; cursor: pointer; }
+.media-picker button span { margin-top: 3px; font-size: 9px; }
+.media-picker p { margin: 7px 0 0; color: var(--muted); font-size: 10px; }
+.primary-action { width: 100%; min-height: 48px; border: 0; border-radius: 999px; background: linear-gradient(135deg, #ed9172, #d97260); box-shadow: 0 8px 18px rgba(204, 104, 79, .23); color: #fff; font-size: 13px; font-weight: 750; cursor: pointer; }
+.primary-action:hover { filter: brightness(.98); transform: translateY(-1px); }
+
+.growth-heading { display: flex; align-items: center; justify-content: space-between; }
+.growth-heading .sprout { background: #e8f1e7; font-size: 30px; }
+.metric-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.metric-tabs button { display: flex; align-items: center; flex-direction: column; gap: 3px; padding: 11px 4px; border: 1px solid var(--line); border-radius: 13px; background: #fff; color: var(--muted); font-size: 11px; cursor: pointer; }
+.metric-tabs button > span { font-size: 18px; }
+.metric-tabs button small { color: #aaa097; font-size: 9px; }
+.metric-tabs button.active { border-color: #99b19e; background: var(--green-soft); color: #52705a; font-weight: 750; }
+.latest-card { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding: 18px; background: linear-gradient(145deg, #fffdf9, #fff2e8); }
+.latest-card div { display: flex; flex-direction: column; }
+.latest-card small, .latest-card div span { color: var(--muted); font-size: 10px; }
+.latest-card strong { margin: 5px 0; color: #cd7358; font-size: 29px; }
+.latest-card > span { color: #dda082; font-size: 30px; }
+.chart-card { margin-bottom: 16px; padding: 17px 14px; }
+.card-title { display: flex; justify-content: space-between; font-size: 13px; }
+.card-title small { color: var(--muted); font-size: 9px; font-weight: 500; }
+.chart { display: flex; align-items: flex-end; gap: 8px; min-height: 190px; padding-top: 18px; overflow-x: auto; }
+.bar-point { display: flex; align-items: center; flex: 1 0 58px; flex-direction: column; min-width: 58px; }
+.bar-point strong { margin-bottom: 5px; color: #63806a; font-size: 10px; }
+.bar-track { display: flex; align-items: flex-end; width: 24px; height: 125px; border-radius: 999px; background: #f0eee9; }
+.bar-track span { width: 100%; min-height: 14px; border-radius: 999px; background: linear-gradient(180deg, #a9c0aa, #79a181); }
+.bar-point small { margin-top: 6px; color: #999087; font-size: 8px; }
+.empty-chart { align-self: center; width: 100%; color: var(--muted); font-size: 11px; text-align: center; }
+
+.profile-hero { display: flex; align-items: center; padding: 16px; background: linear-gradient(145deg, #fffdf9, #fff0e8); }
+.profile-avatar { display: grid; place-items: center; width: 51px; height: 51px; margin-right: 11px; border-radius: 50%; background: linear-gradient(135deg, #e7977f, #d97d72); color: #fff; font-size: 18px; font-weight: 800; }
+.profile-hero > div { display: flex; flex: 1; flex-direction: column; gap: 3px; }
+.profile-hero strong { font-size: 17px; }
+.profile-hero small { color: var(--muted); font-size: 10px; }
+.prototype-pill { padding: 5px 8px; border-radius: 999px; background: #fff; color: var(--coral-deep); font-size: 9px; }
+.profile-content > .prototype-warning { margin-top: 14px; }
+.profile-content h3, .section-heading h3 { margin: 20px 0 10px; font-size: 15px; }
+.identity-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.identity-card { display: flex; align-items: center; flex-direction: column; padding: 12px 4px; border: 1px solid var(--line); border-radius: 13px; background: #fff; cursor: pointer; }
+.identity-card.active { border-color: #e4a68e; background: var(--coral-soft); }
+.identity-card span { display: grid; place-items: center; width: 32px; height: 32px; margin-bottom: 6px; border-radius: 50%; background: #ecd3c7; color: #9f624e; font-size: 11px; font-weight: 800; }
+.identity-card strong { font-size: 11px; }
+.identity-card small { margin-top: 2px; color: var(--muted); font-size: 8px; }
+.section-heading { display: flex; align-items: center; justify-content: space-between; }
+.section-heading button { border: 0; background: transparent; color: var(--coral-deep); font-size: 10px; font-weight: 750; cursor: pointer; }
+.child-list { display: flex; flex-direction: column; gap: 8px; }
+.child-row { display: flex; align-items: center; width: 100%; padding: 12px; border: 1px solid rgba(228, 210, 197, .76); text-align: left; cursor: pointer; }
+.child-row .child-avatar { margin-right: 10px; }
+.child-row div { display: flex; flex: 1; flex-direction: column; gap: 3px; }
+.child-row strong { font-size: 12px; }
+.child-row small { color: var(--muted); font-size: 9px; }
+.child-row b { color: #b4a69c; font-size: 20px; font-weight: 400; }
+.member-list { padding: 0 13px; }
+.member-row { display: flex; align-items: center; min-height: 50px; border-bottom: 1px solid #f0e7e0; }
+.member-row:last-child { border-bottom: 0; }
+.member-row > span:first-child { display: grid; place-items: center; width: 29px; height: 29px; margin-right: 9px; border-radius: 50%; background: #efded3; color: #96634f; font-size: 10px; font-weight: 800; }
+.member-row strong { flex: 1; font-size: 11px; }
+.role-pill { padding: 4px 7px; border-radius: 999px; background: #f2efeb; color: #7f746c; font-size: 8px; }
+.role-pill.admin { background: var(--coral-soft); color: var(--coral-deep); }
+.member-manage { margin-left: 6px; padding: 4px 0 4px 6px; border: 0; background: transparent; color: var(--coral-deep); font-size: 8px; font-weight: 750; cursor: pointer; }
+.invite-card { margin-top: 9px; padding: 13px; border: 1px dashed #e4ae98; border-radius: 13px; background: #fff8f4; text-align: center; }
+.invite-card strong { display: block; margin: 5px; color: var(--coral-deep); font-size: 26px; letter-spacing: .2em; }
+.invite-card small { color: var(--muted); font-size: 9px; }
+.menu-card { padding: 0 13px; }
+.menu-card button { display: flex; align-items: center; width: 100%; min-height: 62px; padding: 0; border: 0; border-bottom: 1px solid #f0e7e0; background: transparent; text-align: left; cursor: pointer; }
+.menu-card button:last-child { border-bottom: 0; }
+.menu-icon { display: grid; place-items: center; width: 36px; height: 36px; margin-right: 10px; border-radius: 11px; font-size: 18px; }
+.green-bg { background: var(--green-soft); color: var(--green); }
+.rose-bg { background: #fff0ee; color: #bc6a68; }
+.menu-card button > span:nth-child(2) { display: flex; flex: 1; flex-direction: column; gap: 3px; }
+.menu-card strong { font-size: 11px; }
+.menu-card small { color: var(--muted); font-size: 9px; }
+.menu-card b { color: #b4a69c; font-size: 20px; font-weight: 400; }
+
+.tab-bar { position: absolute; right: 0; bottom: 0; left: 0; z-index: 15; display: grid; grid-template-columns: repeat(4, 1fr); height: 70px; padding: 7px 8px 8px; border-top: 1px solid #eee4dc; background: rgba(255, 253, 249, .96); backdrop-filter: blur(16px); }
+.tab-bar button { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 3px; border: 0; background: transparent; color: #988b82; font-size: 9px; cursor: pointer; }
+.tab-bar button span { font-size: 21px; line-height: 1; }
+.tab-bar button.active { color: var(--coral-deep); font-weight: 750; }
+
+.app-dialog { width: min(390px, calc(100vw - 28px)); max-height: min(760px, calc(100vh - 40px)); padding: 24px; overflow-y: auto; border: 0; border-radius: 24px; background: var(--paper); color: var(--ink); box-shadow: var(--shadow); }
+.app-dialog::backdrop { background: rgba(43, 35, 30, .54); backdrop-filter: blur(4px); }
+.dialog-close { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 50%; background: #f4efea; color: #75685f; font-size: 22px; cursor: pointer; }
+.detail-person { display: flex; align-items: center; margin-bottom: 18px; }
+.detail-person .child-avatar { width: 44px; height: 44px; }
+.detail-person div { display: flex; flex-direction: column; }
+.detail-person small { color: var(--muted); font-size: 10px; }
+.entry-detail h2, .export-dialog h2 { margin: 8px 0 12px; font-family: Georgia, serif; font-size: 26px; }
+.entry-detail > p { color: #625750; font-size: 13px; line-height: 1.75; }
+.detail-media { display: grid; place-items: center; min-height: 210px; margin: 18px 0; border-radius: 18px; background: linear-gradient(145deg, #f8c7b7, #ef9d83); color: #fff; font-size: 46px; }
+.detail-metric { padding: 10px 12px; border-radius: 11px; background: var(--green-soft); color: #5d7c64; font-size: 12px; font-weight: 750; }
+.dialog-actions { display: flex; gap: 9px; margin-top: 18px; }
+.dialog-actions button { flex: 1; min-height: 43px; border: 1px solid var(--line); border-radius: 999px; background: #fff; font-size: 11px; font-weight: 700; cursor: pointer; }
+.dialog-actions .danger { border-color: #efc1c1; background: #fff4f4; color: #b64f4f; }
+.dialog-intro { color: var(--muted); font-size: 12px; line-height: 1.65; }
+.dialog-form { margin-top: 18px; padding: 15px; border-radius: 16px; background: #fff8f4; }
+.export-list { display: flex; flex-direction: column; gap: 9px; margin-top: 14px; }
+.export-job { padding: 13px; border: 1px solid var(--line); border-radius: 14px; }
+.export-job header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.export-job strong { font-size: 12px; }
+.export-job .status { padding: 4px 7px; border-radius: 999px; background: var(--green-soft); color: #5e7c65; font-size: 8px; }
+.export-job p { margin: 7px 0; color: var(--muted); font-size: 10px; }
+.export-job button { width: 100%; padding: 7px; border: 1px solid #e5c1b2; border-radius: 999px; background: #fff; color: var(--coral-deep); font-size: 9px; font-weight: 700; cursor: pointer; }
+.system-admin-dialog { width: min(430px, calc(100vw - 20px)); }
+.system-admin-dialog h2 { margin: 8px 0 8px; font-family: Georgia, serif; font-size: 27px; }
+.system-admin-dialog h3 { margin: 22px 0 9px; font-size: 13px; }
+.system-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 16px 0; }
+.system-stats div { display: flex; align-items: center; flex-direction: column; padding: 10px 2px; border-radius: 11px; background: #fff5f0; }
+.system-stats strong { color: var(--coral-deep); font-size: 18px; }
+.system-stats small { margin-top: 2px; color: var(--muted); font-size: 7px; }
+.system-family-list { display: flex; flex-direction: column; gap: 9px; }
+.system-family-card { overflow: hidden; border: 1px solid var(--line); border-radius: 14px; }
+.system-family-card header { display: flex; align-items: flex-start; padding: 11px; border-bottom: 1px solid #f0e7e0; background: #fffaf7; }
+.system-family-card header div { display: flex; flex: 1; flex-direction: column; gap: 3px; }
+.system-family-card header strong { font-size: 12px; }
+.system-family-card header small { color: var(--muted); font-size: 8px; }
+.system-family-card header em { padding: 4px 6px; border-radius: 999px; background: var(--green-soft); color: var(--green); font-size: 7px; font-style: normal; }
+.system-member-row { display: flex; align-items: center; min-height: 42px; padding: 0 11px; border-bottom: 1px solid #f3ece6; }
+.system-member-row:last-child { border-bottom: 0; }
+.system-member-row > span, .system-user-row > span { display: grid; place-items: center; width: 25px; height: 25px; margin-right: 8px; border-radius: 50%; background: #f0dfd4; color: #9b6754; font-size: 8px; font-weight: 800; }
+.system-member-row strong { flex: 1; font-size: 9px; }
+.system-member-row small { color: var(--muted); font-size: 7px; }
+.system-member-row button { margin-left: 7px; padding: 3px 0 3px 5px; border: 0; background: transparent; color: var(--coral-deep); font-size: 7px; font-weight: 750; cursor: pointer; }
+.system-user-list { padding: 0 11px; border: 1px solid var(--line); border-radius: 14px; }
+.system-user-row { display: flex; align-items: center; min-height: 48px; border-bottom: 1px solid #f3ece6; }
+.system-user-row:last-child { border-bottom: 0; }
+.system-user-row > div { display: flex; flex: 1; flex-direction: column; gap: 2px; }
+.system-user-row strong { font-size: 9px; }
+.system-user-row strong em { margin-left: 5px; padding: 3px 5px; border-radius: 999px; background: #443a34; color: #fff; font-size: 6px; font-style: normal; }
+.system-user-row small { color: var(--muted); font-size: 7px; }
+.toast { position: fixed; bottom: 28px; left: 50%; z-index: 50; padding: 10px 16px; border-radius: 999px; background: #332d29; color: #fff; font-size: 12px; opacity: 0; pointer-events: none; transform: translate(-50%, 12px); transition: .2s; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 900px) {
+  body { background: var(--cream); }
+  .prototype-stage { display: block; min-height: 100vh; padding: 0; }
+  .review-rail { display: none; }
+  .phone-shell { width: 100%; height: 100vh; min-height: 620px; border: 0; border-radius: 0; box-shadow: none; }
+}
+
+@media (max-height: 760px) and (min-width: 901px) {
+  .prototype-stage { align-items: start; padding-top: 18px; padding-bottom: 18px; }
+  .phone-shell { height: calc(100vh - 36px); min-height: 640px; }
+  .brand-lockup { margin-bottom: 32px; }
+}
+
+    </style>
+  </head>
+  <body>
+    <main class="prototype-stage">
+      <aside class="review-rail" aria-label="原型检查说明">
+        <div class="brand-lockup">
+          <span class="brand-mark">长</span>
+          <div>
+            <strong>成长日记</strong>
+            <span>HTML 交互原型</span>
+          </div>
+        </div>
+        <div class="review-copy">
+          <p class="eyebrow">PROTOTYPE REVIEW</p>
+          <h1>先看体验，<br />再决定怎么改。</h1>
+          <p>右侧模拟一台手机。四个底部标签、记录详情、身份权限、发布和导出状态均可点击体验。</p>
+        </div>
+        <div class="review-list">
+          <h2>建议重点检查</h2>
+          <button type="button" data-jump="wall"><span>01</span>成长墙的信息密度</button>
+          <button type="button" data-jump="publish"><span>02</span>发布流程是否够简单</button>
+          <button type="button" data-jump="growth"><span>03</span>成长指标是否有价值</button>
+          <button type="button" data-jump="profile"><span>04</span>权限与备份表达是否清晰</button>
+        </div>
+        <p class="review-note">原型数据保存在浏览器本地。不会上传照片，不连接腾讯云或夸克网盘。</p>
+      </aside>
+
+      <section class="phone-shell" aria-label="成长日记手机原型">
+        <div class="phone-status" aria-hidden="true">
+          <span>9:41</span>
+          <span class="dynamic-island"></span>
+          <span>● ● ▰</span>
+        </div>
+
+        <section class="context-gate" id="context-gate" aria-label="选择家庭和宝宝">
+          <div class="gate-brand"><span>长</span><div><strong>成长日记</strong><small>GROWTH DIARY</small></div></div>
+          <div class="gate-step" id="family-step">
+            <div class="gate-account-switch">
+              <small>演示账号（用于验收邀请码和权限）</small>
+              <div id="gate-account-list"></div>
+            </div>
+            <button class="gate-system-admin" type="button" id="open-system-admin" hidden>
+              <span>管</span><span><strong>系统管理中心</strong><small>管理全部家庭、用户与成员权限</small></span><b>›</b>
+            </button>
+            <p class="eyebrow coral">第一步 · 选择家庭</p>
+            <h2>今天要进入哪个<br /><em>家庭空间</em>？</h2>
+            <p>每个家庭拥有独立的宝宝、成员、记录与素材。</p>
+            <div class="gate-family-list" id="gate-family-list"></div>
+            <button class="gate-outline" type="button" id="create-family">＋ 创建新的家庭空间</button>
+            <button class="gate-join" type="button" id="join-family">输入邀请码加入家庭</button>
+          </div>
+          <div class="gate-step" id="child-step" hidden>
+            <button class="gate-back" type="button" id="back-family">‹ 返回选择家庭</button>
+            <p class="eyebrow coral">第二步 · 选择宝宝</p>
+            <h2>进入<span id="gate-family-name"></span>，<br />记录谁的成长？</h2>
+            <p>进入后可以在当前家庭内随时切换宝宝。</p>
+            <div class="gate-child-grid" id="gate-child-grid"></div>
+          </div>
+          <small class="gate-footnote">本地演示模式 · 不会上传真实家庭资料</small>
+        </section>
+
+        <div class="app-viewport">
+          <section class="screen active" id="screen-wall" data-screen="wall" aria-label="成长墙">
+            <button class="wall-context" type="button" id="wall-change-family">
+              <span class="wall-home">⌂</span>
+              <span><small>当前家庭</small><strong id="wall-context-value">暖暖一家 · 乐乐</strong></span>
+              <b>切换家庭 ›</b>
+            </button>
+            <header class="hero">
+              <div>
+                <p class="hero-kicker" id="wall-family-name">暖暖一家</p>
+                <h2>把成长的每一天，<br />轻轻收藏起来</h2>
+              </div>
+              <span class="sun">☀</span>
+            </header>
+            <div class="screen-content wall-content">
+              <div class="prototype-warning">演示数据仅保存在本机，不具备云端备份能力。</div>
+              <div class="chip-row" id="child-filter" aria-label="宝宝筛选"></div>
+              <div class="timeline" id="timeline"></div>
+            </div>
+          </section>
+
+          <section class="screen" id="screen-publish" data-screen="publish" aria-label="发布记录">
+            <div class="screen-content publish-content">
+              <header class="page-heading">
+                <p class="eyebrow coral">NEW MEMORY</p>
+                <h2>今天，有什么<br />值得记住？</h2>
+              </header>
+              <div class="prototype-warning">这是交互演示，不会上传或长期保存真实素材。</div>
+
+              <div class="segmented" id="entry-kind">
+                <button class="active" type="button" data-kind="DIARY">☁ 生活日记</button>
+                <button type="button" data-kind="MILESTONE">✦ 成长里程碑</button>
+              </div>
+
+              <form class="form-card" id="publish-form">
+                <label>记录给谁<select id="publish-child"></select></label>
+                <label>成长日期<input id="publish-date" type="date" required /></label>
+                <label>标题 <small><span id="title-count">0</span>/60</small><input id="publish-title" maxlength="60" placeholder="例如：第一次叫妈妈" required /></label>
+                <label>写下这一刻 <small><span id="body-count">0</span>/2000</small><textarea id="publish-body" maxlength="2000" placeholder="把当时的心情、宝宝的反应都记下来…"></textarea></label>
+
+                <div class="milestone-fields" id="milestone-fields" hidden>
+                  <label>自定义事件<input id="custom-event" placeholder="例如：第一次微笑" /></label>
+                  <fieldset>
+                    <legend>成长指标（可选）</legend>
+                    <div class="metric-picker" id="metric-picker">
+                      <button type="button" data-metric="HEIGHT">身高</button>
+                      <button type="button" data-metric="WEIGHT">体重</button>
+                      <button type="button" data-metric="HEAD">头围</button>
+                    </div>
+                    <div class="metric-value" id="metric-value-wrap" hidden>
+                      <input id="metric-value" type="number" min="0" step="0.1" placeholder="数值" />
+                      <span id="metric-unit">cm</span>
+                    </div>
+                  </fieldset>
+                </div>
+
+                <div class="media-picker">
+                  <div><strong>照片与视频</strong><small>0/9</small></div>
+                  <button type="button" id="mock-media">＋<span>添加演示素材</span></button>
+                  <p id="media-hint">未添加素材</p>
+                </div>
+                <button class="primary-action" type="submit">收藏这段成长</button>
+              </form>
+            </div>
+          </section>
+
+          <section class="screen" id="screen-growth" data-screen="growth" aria-label="成长数据">
+            <div class="screen-content growth-content">
+              <header class="page-heading growth-heading">
+                <div>
+                  <p class="eyebrow green">GROWING UP</p>
+                  <h2>每一点变化，<br />都有迹可循</h2>
+                </div>
+                <span class="sprout">🌱</span>
+              </header>
+              <div class="prototype-warning">成长趋势仅用于原型展示，不构成医疗建议。</div>
+              <div class="chip-row" id="growth-child-filter"></div>
+              <div class="metric-tabs" id="metric-tabs">
+                <button class="active" type="button" data-type="HEIGHT"><span>↕</span>身高<small id="height-count">0次</small></button>
+                <button type="button" data-type="WEIGHT"><span>⚖</span>体重<small id="weight-count">0次</small></button>
+                <button type="button" data-type="HEAD"><span>○</span>头围<small id="head-count">0次</small></button>
+              </div>
+              <div class="latest-card">
+                <div><small>最近一次记录</small><strong id="latest-value">暂无记录</strong><span id="latest-date">还没有成长数据</span></div>
+                <span>✦</span>
+              </div>
+              <div class="chart-card">
+                <div class="card-title"><strong>成长趋势</strong><small id="chart-unit">单位：cm</small></div>
+                <div class="chart" id="growth-chart"></div>
+              </div>
+              <button class="primary-action" type="button" data-jump="publish">＋ 添加一次成长记录</button>
+            </div>
+          </section>
+
+          <section class="screen" id="screen-profile" data-screen="profile" aria-label="我的家庭">
+            <div class="screen-content profile-content">
+              <div class="profile-hero">
+                <span class="profile-avatar" id="profile-avatar">妈</span>
+                <div><strong id="profile-name">妈妈</strong><small id="profile-role">暖暖一家 · 家庭创建者</small></div>
+                <span class="prototype-pill">原型</span>
+              </div>
+              <div class="prototype-warning">切换演示身份，检查不同角色的权限与提示。</div>
+
+              <h3>切换演示身份</h3>
+              <div class="identity-grid" id="identity-grid"></div>
+
+              <div class="section-heading"><h3>宝宝档案</h3><button type="button" id="add-child">＋ 新增宝宝</button></div>
+              <div class="child-list" id="profile-children"></div>
+
+              <div class="section-heading"><h3>家庭成员</h3><button type="button" id="create-invite">＋ 邀请家人</button></div>
+              <div class="member-list" id="member-list"></div>
+              <div class="invite-card" id="invite-card" hidden></div>
+
+              <h3>素材与数据</h3>
+              <div class="menu-card">
+                <button type="button" id="open-export"><span class="menu-icon green-bg">⇩</span><span><strong>素材导出</strong><small>按宝宝和月份模拟分卷导出</small></span><b>›</b></button>
+                <button type="button" id="reset-demo"><span class="menu-icon rose-bg">↻</span><span><strong>重置演示数据</strong><small>恢复为项目初始示例</small></span><b>›</b></button>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <nav class="tab-bar" aria-label="主导航">
+          <button class="active" type="button" data-target="wall"><span>⌂</span>成长墙</button>
+          <button type="button" data-target="publish"><span>＋</span>发布</button>
+          <button type="button" data-target="growth"><span>⌁</span>成长数据</button>
+          <button type="button" data-target="profile"><span>○</span>我的</button>
+        </nav>
+      </section>
+    </main>
+
+    <dialog class="app-dialog" id="entry-dialog">
+      <button class="dialog-close" type="button" data-close="entry-dialog" aria-label="关闭">×</button>
+      <div id="entry-detail"></div>
+    </dialog>
+
+    <dialog class="app-dialog export-dialog" id="export-dialog">
+      <button class="dialog-close" type="button" data-close="export-dialog" aria-label="关闭">×</button>
+      <p class="eyebrow green">MANUAL ARCHIVE</p>
+      <h2>素材导出</h2>
+      <p class="dialog-intro">这里只模拟导出任务，不生成真实 ZIP，也不会连接夸克网盘。</p>
+      <form id="export-form" class="dialog-form">
+        <label>选择宝宝<select id="export-child"></select></label>
+        <label>选择月份<input id="export-month" type="month" required /></label>
+        <button class="primary-action" type="submit">生成演示导出</button>
+      </form>
+      <div id="export-list" class="export-list"></div>
+    </dialog>
+
+    <dialog class="app-dialog action-dialog" id="action-dialog">
+      <button class="dialog-close" type="button" data-close="action-dialog" aria-label="关闭">×</button>
+      <p class="eyebrow coral">FAMILY ACTION</p>
+      <h2 id="action-title">家庭操作</h2>
+      <p class="dialog-intro" id="action-intro"></p>
+      <form id="action-form" class="dialog-form">
+        <label><span id="action-label">请输入内容</span><input id="action-input" autocomplete="off" required /></label>
+        <button class="primary-action" id="action-confirm" type="submit">确认</button>
+      </form>
+    </dialog>
+
+    <dialog class="app-dialog system-admin-dialog" id="system-admin-dialog">
+      <button class="dialog-close" type="button" data-close="system-admin-dialog" aria-label="关闭">×</button>
+      <p class="eyebrow coral">SYSTEM ADMIN</p>
+      <h2>系统管理中心</h2>
+      <p class="dialog-intro">管理全局用户和家庭成员权限。为保护家庭隐私，这里不展示宝宝照片和视频。</p>
+      <div class="system-stats" id="system-stats"></div>
+      <h3>全部家庭</h3>
+      <div class="system-family-list" id="system-family-list"></div>
+      <h3>全部用户</h3>
+      <div class="system-user-list" id="system-user-list"></div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script>
+(() => {
+  const STORAGE_KEY = "growth-diary-html-prototype-v3";
+  const today = new Date().toISOString().slice(0, 10);
+  const month = today.slice(0, 7);
+
+  const seed = () => ({
+    activeUserId: "mom",
+    activeFamilyId: "",
+    activeChildId: "",
+    growthType: "HEIGHT",
+    families: [
+      { id: "warm", name: "暖暖一家", color: "#E98F72" },
+      { id: "grandma-home", name: "外婆的小院", color: "#7FA48B" },
+    ],
+    users: [
+      { id: "mom", name: "妈妈", avatar: "妈", systemAdmin: true },
+      { id: "dad", name: "爸爸", avatar: "爸" },
+      { id: "grandma", name: "外婆", avatar: "外" },
+    ],
+    memberships: [
+      { familyId: "warm", userId: "mom", role: "OWNER" },
+      { familyId: "warm", userId: "dad", role: "ADMIN" },
+      { familyId: "warm", userId: "grandma", role: "MEMBER" },
+      { familyId: "grandma-home", userId: "grandma", role: "OWNER" },
+      { familyId: "grandma-home", userId: "mom", role: "ADMIN" },
+    ],
+    children: [
+      { id: "lele", familyId: "warm", name: "乐乐", label: "宝宝", birthday: "2025-10-08", color: "#F0A58A" },
+      { id: "tangtang", familyId: "warm", name: "糖糖", label: "姐姐", birthday: "2023-06-18", color: "#D991A2" },
+      { id: "anan", familyId: "grandma-home", name: "安安", label: "小表弟", birthday: "2026-02-14", color: "#87AAA0" },
+    ],
+    records: [
+      { id: "r1", familyId: "warm", childId: "lele", creatorId: "mom", kind: "DIARY", title: "清晨的小小微笑", body: "醒来后对着窗边的光笑了很久。今天的阳光和你的笑一样柔软。", date: "2026-09-18", media: "image", tone: "peach" },
+      { id: "r2", familyId: "warm", childId: "lele", creatorId: "dad", kind: "MILESTONE", title: "第一次自己翻身", body: "努力了好几次，终于成功翻过来，全家都在为你鼓掌。", date: "2026-09-03", media: "video", event: "第一次翻身", tone: "sage" },
+      { id: "r3", familyId: "warm", childId: "lele", creatorId: "mom", kind: "MILESTONE", title: "九月成长记录", body: "体检时记录了新的身高，长得很棒。", date: "2026-09-01", metric: { type: "HEIGHT", value: 72.5, unit: "cm" } },
+      { id: "r4", familyId: "warm", childId: "tangtang", creatorId: "grandma", kind: "DIARY", title: "一起去公园", body: "糖糖一路都在认真观察树叶，还捡了一片最喜欢的带回家。", date: "2026-08-28", media: "image", tone: "rose" },
+      { id: "r5", familyId: "warm", childId: "tangtang", creatorId: "mom", kind: "MILESTONE", title: "三岁两个月体重", body: "今天在家测量并记录。", date: "2026-08-18", metric: { type: "WEIGHT", value: 14.2, unit: "kg" } },
+      { id: "r6", familyId: "warm", childId: "lele", creatorId: "mom", kind: "MILESTONE", title: "八月成长记录", body: "又长高了一点。", date: "2026-08-01", metric: { type: "HEIGHT", value: 70.4, unit: "cm" } },
+      { id: "r7", familyId: "grandma-home", childId: "anan", creatorId: "grandma", kind: "DIARY", title: "外婆怀里的午后", body: "吃饱以后安静地睡着了，小院里只有风吹树叶的声音。", date: "2026-09-12", media: "image", tone: "sage" },
+    ],
+    invites: [],
+    exports: [{ id: "e1", familyId: "warm", childId: "lele", month: "2026-08", status: "CONFIRMED", parts: 1 }],
+  });
+
+  let state = load();
+  let entryKind = "DIARY";
+  let metricType = "";
+  let hasMockMedia = false;
+  let toastTimer;
+  let actionSubmit;
+
+  function load() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (stored) {
+        const systemAdmin = stored.users?.find((user) => user.id === "mom");
+        if (systemAdmin) systemAdmin.systemAdmin = true;
+        return stored;
+      }
+      return seed();
+    } catch {
+      return seed();
+    }
+  }
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function escapeHtml(value = "") {
+    return String(value).replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
+  }
+
+  function roleLabel(role) {
+    return { OWNER: "家庭创建者", ADMIN: "管理员", MEMBER: "家庭成员" }[role] || role;
+  }
+
+  function metricLabel(type) {
+    return { HEIGHT: "身高", WEIGHT: "体重", HEAD: "头围" }[type] || "成长数据";
+  }
+
+  function currentUser() {
+    return state.users.find((user) => user.id === state.activeUserId) || state.users[0];
+  }
+
+  function currentFamily() {
+    if (!currentMembership()) return undefined;
+    return state.families.find((family) => family.id === state.activeFamilyId);
+  }
+
+  function currentMembership() {
+    return state.memberships.find((item) => item.familyId === state.activeFamilyId && item.userId === state.activeUserId);
+  }
+
+  function currentChildren() {
+    if (!currentMembership()) return [];
+    return state.children.filter((child) => child.familyId === state.activeFamilyId);
+  }
+
+  function currentFamilyUsers() {
+    if (!currentMembership()) return [];
+    const userIds = new Set(state.memberships.filter((item) => item.familyId === state.activeFamilyId).map((item) => item.userId));
+    return state.users.filter((user) => userIds.has(user.id));
+  }
+
+  function childById(id) {
+    if (!currentMembership()) return undefined;
+    return state.children.find((child) => child.id === id && child.familyId === state.activeFamilyId);
+  }
+
+  function userById(id) {
+    return state.users.find((user) => user.id === id);
+  }
+
+  function isAdmin() {
+    return ["OWNER", "ADMIN"].includes(currentMembership()?.role);
+  }
+
+  function isSystemAdmin() {
+    return currentUser().systemAdmin === true;
+  }
+
+  function ageAt(birthday, date = today) {
+    const birth = new Date(birthday);
+    const target = new Date(date);
+    let months = (target.getFullYear() - birth.getFullYear()) * 12 + target.getMonth() - birth.getMonth();
+    if (target.getDate() < birth.getDate()) months -= 1;
+    months = Math.max(0, months);
+    if (months < 12) return `${months}个月`;
+    const years = Math.floor(months / 12);
+    const rest = months % 12;
+    return rest ? `${years}岁${rest}个月` : `${years}岁`;
+  }
+
+  function formatDate(value) {
+    const [year, mon, day] = value.split("-");
+    return `${year}年${Number(mon)}月${Number(day)}日`;
+  }
+
+  function showToast(message) {
+    const toast = document.querySelector("#toast");
+    toast.textContent = message;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 1800);
+  }
+
+  function openActionDialog(options, onSubmit) {
+    const dialog = document.querySelector("#action-dialog");
+    document.querySelector("#action-title").textContent = options.title;
+    document.querySelector("#action-intro").textContent = options.intro || "";
+    document.querySelector("#action-label").textContent = options.label;
+    const input = document.querySelector("#action-input");
+    input.placeholder = options.placeholder || "";
+    input.value = options.value || "";
+    document.querySelector("#action-confirm").textContent = options.confirmText || "确认";
+    actionSubmit = onSubmit;
+    dialog.showModal();
+  }
+
+  function renderContext(step = state.activeFamilyId ? "CHILD" : "FAMILY") {
+    const gate = document.querySelector("#context-gate");
+    gate.hidden = Boolean(state.activeFamilyId && state.activeChildId);
+    document.querySelector("#family-step").hidden = step !== "FAMILY";
+    document.querySelector("#child-step").hidden = step !== "CHILD";
+    document.querySelector("#gate-account-list").innerHTML = state.users.map((user) => `<button type="button" class="${user.id === state.activeUserId ? "active" : ""}" data-gate-user="${user.id}">${escapeHtml(user.avatar)} · ${escapeHtml(user.name)}</button>`).join("");
+    document.querySelector("#open-system-admin").hidden = !isSystemAdmin();
+    document.querySelectorAll("[data-gate-user]").forEach((button) => button.addEventListener("click", () => {
+      state.activeUserId = button.dataset.gateUser;
+      state.activeFamilyId = "";
+      state.activeChildId = "";
+      save();
+      renderContext("FAMILY");
+      showToast(`已切换为${currentUser().name}`);
+    }));
+    const accessibleFamilyIds = new Set(state.memberships.filter((item) => item.userId === state.activeUserId).map((item) => item.familyId));
+    document.querySelector("#gate-family-list").innerHTML = state.families.filter((family) => accessibleFamilyIds.has(family.id)).map((family) => `<button type="button" class="gate-family-card" data-family="${family.id}"><span class="family-symbol" style="background:${family.color}">${escapeHtml(family.name.slice(0, 1))}</span><span><strong>${escapeHtml(family.name)}</strong><small>进入后再选择宝宝</small></span><b>›</b></button>`).join("");
+    document.querySelectorAll("[data-family]").forEach((button) => button.addEventListener("click", () => {
+      state.activeFamilyId = button.dataset.family;
+      state.activeChildId = "";
+      save();
+      renderContext("CHILD");
+    }));
+    const family = currentFamily();
+    document.querySelector("#gate-family-name").textContent = family?.name || "这个家庭";
+    const familyChildren = currentChildren();
+    document.querySelector("#gate-child-grid").innerHTML = familyChildren.length
+      ? familyChildren.map((child) => `<button type="button" class="gate-child-card" data-gate-child="${child.id}"><span class="baby-symbol" style="background:${child.color}">${escapeHtml(child.name.slice(0, 1))}</span><strong>${escapeHtml(child.name)}</strong><small>${escapeHtml(child.label)} · ${ageAt(child.birthday)}</small><em>进入成长墙</em></button>`).join("")
+      : `<button type="button" class="gate-empty-child" id="create-first-child">🌱<strong>这个家庭还没有宝宝档案</strong><small>创建第一个宝宝档案</small></button>`;
+    document.querySelectorAll("[data-gate-child]").forEach((button) => button.addEventListener("click", () => {
+      state.activeChildId = button.dataset.gateChild;
+      save();
+      gate.hidden = true;
+      renderAll();
+      navigate("wall");
+    }));
+    document.querySelector("#create-first-child")?.addEventListener("click", createChildInActiveFamily);
+  }
+
+  function navigate(target) {
+    if (!currentMembership() || !state.activeChildId) {
+      renderContext(state.activeFamilyId ? "CHILD" : "FAMILY");
+      return;
+    }
+    document.querySelectorAll(".screen").forEach((screen) => screen.classList.toggle("active", screen.dataset.screen === target));
+    document.querySelectorAll(".tab-bar button").forEach((button) => button.classList.toggle("active", button.dataset.target === target));
+    document.querySelector(`#screen-${target}`)?.scrollTo({ top: 0, behavior: "smooth" });
+    if (target === "growth") renderGrowth();
+    if (target === "profile") renderProfile();
+  }
+
+  function renderChildChips(containerId, selectedId, onSelect) {
+    const container = document.querySelector(containerId);
+    const items = currentChildren();
+    container.innerHTML = items.map((child) => `<button type="button" class="${child.id === selectedId ? "active" : ""}" data-id="${child.id}">${escapeHtml(child.name)}</button>`).join("");
+    container.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => onSelect(button.dataset.id)));
+  }
+
+  function renderWall() {
+    if (!currentMembership()) {
+      document.querySelector("#timeline").innerHTML = `<div class="prototype-warning">你不是该家庭成员，无法查看宝宝照片和记录。</div>`;
+      return;
+    }
+    const family = currentFamily();
+    const activeChild = childById(state.activeChildId);
+    document.querySelector("#wall-family-name").textContent = family?.name || "成长日记";
+    document.querySelector("#wall-context-value").textContent = `${family?.name || "未选择家庭"} · ${activeChild?.name || "未选择宝宝"}`;
+    renderChildChips("#child-filter", state.activeChildId, (id) => {
+      state.activeChildId = id;
+      save();
+      renderAll();
+    });
+    const records = state.records
+      .filter((record) => record.familyId === state.activeFamilyId && record.childId === state.activeChildId)
+      .sort((a, b) => b.date.localeCompare(a.date));
+    const timeline = document.querySelector("#timeline");
+    timeline.innerHTML = records.length ? records.map((record) => {
+      const child = childById(record.childId);
+      const author = userById(record.creatorId);
+      const media = record.media ? `<div class="mock-media ${record.media === "video" ? "video" : record.tone === "rose" ? "rose" : ""}">${record.media === "video" ? "▶" : "✦"}<small>${record.media === "video" ? "视频" : "照片"}</small></div>` : "";
+      const metric = record.metric ? `<span class="metric-pill">${metricLabel(record.metric.type)} ${record.metric.value}${record.metric.unit}</span>` : "";
+      return `<article class="timeline-item"><span class="timeline-dot" style="background:${child.color}"></span><div class="memory-card" data-entry="${record.id}"><header class="card-header"><span class="child-avatar" style="background:${child.color}">${escapeHtml(child.name.slice(0, 1))}</span><div class="card-person"><strong>${escapeHtml(child.name)} · ${ageAt(child.birthday, record.date)}</strong><small>${formatDate(record.date)} · ${escapeHtml(author.name)}</small></div><span class="type-pill">${record.kind === "MILESTONE" ? "成长里程碑" : "生活日记"}</span></header>${media}<div class="memory-body"><div class="memory-title-row"><h3>${escapeHtml(record.title)}</h3>${metric}</div><p>${escapeHtml(record.body)}</p><div class="memory-meta"><span>${record.event ? `🎈 ${escapeHtml(record.event)}` : ""}</span><span>查看记录 ›</span></div></div></div></article>`;
+    }).join("") : `<div class="prototype-warning">当前筛选下还没有成长记录。</div>`;
+    timeline.querySelectorAll("[data-entry]").forEach((card) => card.addEventListener("click", () => openEntry(card.dataset.entry)));
+  }
+
+  function openEntry(id) {
+    if (!currentMembership()) return showToast("你不是该家庭成员，无法查看宝宝照片");
+    const record = state.records.find((item) => item.id === id);
+    if (!record) return;
+    const child = childById(record.childId);
+    const author = userById(record.creatorId);
+    const canEdit = isAdmin() || record.creatorId === currentUser().id;
+    const detail = document.querySelector("#entry-detail");
+    detail.className = "entry-detail";
+    detail.innerHTML = `<div class="detail-person"><span class="child-avatar" style="background:${child.color}">${child.name.slice(0, 1)}</span><div><strong>${escapeHtml(child.name)} · ${ageAt(child.birthday, record.date)}</strong><small>${formatDate(record.date)} · ${escapeHtml(author.name)}记录</small></div></div><p class="eyebrow coral">${record.kind === "MILESTONE" ? "成长里程碑" : "生活日记"}</p><h2>${escapeHtml(record.title)}</h2>${record.metric ? `<div class="detail-metric">📏 ${metricLabel(record.metric.type)} ${record.metric.value}${record.metric.unit}</div>` : ""}${record.event ? `<div class="detail-metric">🎈 ${escapeHtml(record.event)}</div>` : ""}<p>${escapeHtml(record.body)}</p>${record.media ? `<div class="detail-media">${record.media === "video" ? "▶" : "✦"}</div>` : ""}<div class="dialog-actions">${canEdit ? `<button type="button" id="demo-edit">编辑记录</button>` : ""}${isAdmin() ? `<button type="button" class="danger" id="demo-delete">永久删除</button>` : ""}</div>`;
+    document.querySelector("#entry-dialog").showModal();
+    detail.querySelector("#demo-edit")?.addEventListener("click", () => showToast("HTML 原型暂不实现编辑回填"));
+    detail.querySelector("#demo-delete")?.addEventListener("click", () => {
+      if (window.confirm("永久删除这条记录？原型不提供回收站。")) {
+        state.records = state.records.filter((item) => item.id !== id);
+        save();
+        document.querySelector("#entry-dialog").close();
+        renderAll();
+        showToast("已从本地原型永久删除");
+      }
+    });
+  }
+
+  function renderPublishOptions() {
+    const options = currentChildren().map((child) => `<option value="${child.id}" ${child.id === state.activeChildId ? "selected" : ""}>${escapeHtml(child.name)}</option>`).join("");
+    document.querySelector("#publish-child").innerHTML = options;
+    document.querySelector("#export-child").innerHTML = options;
+  }
+
+  function renderGrowth() {
+    if (!currentChildren().some((child) => child.id === state.activeChildId)) state.activeChildId = currentChildren()[0]?.id || "";
+    renderChildChips("#growth-child-filter", state.activeChildId, (id) => {
+      state.activeChildId = id;
+      save();
+      renderAll();
+    });
+    const metrics = state.records.filter((record) => record.familyId === state.activeFamilyId && record.childId === state.activeChildId && record.metric).map((record) => ({ ...record.metric, date: record.date })).sort((a, b) => a.date.localeCompare(b.date));
+    ["HEIGHT", "WEIGHT", "HEAD"].forEach((type) => {
+      const id = { HEIGHT: "height-count", WEIGHT: "weight-count", HEAD: "head-count" }[type];
+      document.querySelector(`#${id}`).textContent = `${metrics.filter((item) => item.type === type).length}次`;
+    });
+    document.querySelectorAll("#metric-tabs button").forEach((button) => button.classList.toggle("active", button.dataset.type === state.growthType));
+    const points = metrics.filter((item) => item.type === state.growthType);
+    const latest = points.at(-1);
+    document.querySelector("#latest-value").textContent = latest ? `${latest.value}${latest.unit}` : "暂无记录";
+    document.querySelector("#latest-date").textContent = latest ? formatDate(latest.date) : "还没有成长数据";
+    document.querySelector("#chart-unit").textContent = `单位：${state.growthType === "WEIGHT" ? "kg" : "cm"}`;
+    const values = points.map((point) => point.value);
+    const min = values.length ? Math.min(...values) : 0;
+    const max = values.length ? Math.max(...values) : 1;
+    const span = Math.max(1, max - min);
+    document.querySelector("#growth-chart").innerHTML = points.length ? points.map((point) => {
+      const height = 24 + ((point.value - min) / span) * 92;
+      return `<div class="bar-point"><strong>${point.value}</strong><div class="bar-track"><span style="height:${height}px"></span></div><small>${point.date.slice(5)}</small></div>`;
+    }).join("") : `<div class="empty-chart">📏<br />还没有这一项数据</div>`;
+  }
+
+  function renderProfile() {
+    const user = currentUser();
+    const family = currentFamily();
+    const membership = currentMembership();
+    document.querySelector("#profile-avatar").textContent = user.avatar;
+    document.querySelector("#profile-name").textContent = user.name;
+    document.querySelector("#profile-role").textContent = `${family?.name || "家庭"} · ${roleLabel(membership?.role)}`;
+    document.querySelector("#identity-grid").innerHTML = currentFamilyUsers().map((item) => {
+      const role = state.memberships.find((member) => member.familyId === state.activeFamilyId && member.userId === item.id)?.role;
+      return `<button type="button" class="identity-card ${item.id === user.id ? "active" : ""}" data-user="${item.id}"><span>${item.avatar}</span><strong>${escapeHtml(item.name)}</strong><small>${roleLabel(role)}</small></button>`;
+    }).join("");
+    document.querySelectorAll("[data-user]").forEach((button) => button.addEventListener("click", () => {
+      state.activeUserId = button.dataset.user;
+      save();
+      renderProfile();
+      showToast(`已切换为${currentUser().name}`);
+    }));
+    document.querySelector("#profile-children").innerHTML = currentChildren().map((child) => `<button type="button" class="child-row"><span class="child-avatar" style="background:${child.color}">${child.name.slice(0, 1)}</span><div><strong>${escapeHtml(child.name)} · ${escapeHtml(child.label)}</strong><small>${ageAt(child.birthday)} · ${child.birthday}出生</small></div><b>›</b></button>`).join("");
+    document.querySelector("#member-list").innerHTML = currentFamilyUsers().map((item) => {
+      const member = state.memberships.find((candidate) => candidate.familyId === state.activeFamilyId && candidate.userId === item.id);
+      const role = member?.role;
+      const canManage = item.id !== user.id && role !== "OWNER" && (membership?.role === "OWNER" || (membership?.role === "ADMIN" && role === "MEMBER"));
+      return `<div class="member-row"><span>${item.avatar}</span><strong>${escapeHtml(item.name)}</strong><span class="role-pill ${role !== "MEMBER" ? "admin" : ""}">${roleLabel(role)}</span>${canManage ? `<button type="button" class="member-manage" data-member="${item.id}">管理 ›</button>` : ""}</div>`;
+    }).join("");
+    document.querySelectorAll("[data-member]").forEach((button) => button.addEventListener("click", () => manageMember(button.dataset.member)));
+    const latestInvite = state.invites.find((invite) => invite.familyId === state.activeFamilyId && !invite.usedAt && new Date(invite.expiresAt).getTime() > Date.now());
+    const inviteCard = document.querySelector("#invite-card");
+    inviteCard.hidden = !latestInvite;
+    if (latestInvite) inviteCard.innerHTML = `<small>一次性家庭邀请码</small><strong>${escapeHtml(latestInvite.code)}</strong><small>有效至 ${new Date(latestInvite.expiresAt).toLocaleString("zh-CN")}</small>`;
+    const adminOnlyButtons = [document.querySelector("#add-child"), document.querySelector("#create-invite")];
+    adminOnlyButtons.forEach((button) => { button.hidden = !isAdmin(); });
+  }
+
+  function createChildInActiveFamily() {
+    if (!currentMembership() || !isAdmin()) return showToast("只有管理员可以创建宝宝档案");
+    openActionDialog({ title: "创建宝宝档案", label: "宝宝昵称", placeholder: "请输入1至12个字", confirmText: "创建" }, (name) => {
+      if (name.length > 12) return showToast("请输入1至12个字的宝宝昵称");
+      const child = {
+        id: `child-${Date.now()}`,
+        familyId: state.activeFamilyId,
+        name,
+        label: "宝宝",
+        birthday: today,
+        color: "#F0A58A",
+      };
+      state.children.push(child);
+      save();
+      renderContext("CHILD");
+      showToast("宝宝档案已创建，可稍后完善生日");
+    });
+  }
+
+  function manageMember(userId) {
+    const actor = currentMembership();
+    const target = state.memberships.find((item) => item.familyId === state.activeFamilyId && item.userId === userId);
+    if (!actor || !target || target.role === "OWNER" || target.userId === state.activeUserId) return;
+    if (actor.role === "ADMIN" && target.role !== "MEMBER") return showToast("管理员只能移除普通成员");
+    if (actor.role === "MEMBER") return showToast("没有成员管理权限");
+
+    openActionDialog({
+      title: `管理${userById(userId)?.name || "成员"}`,
+      intro: actor.role === "OWNER" ? "可输入 ADMIN、MEMBER 或 REMOVE；输入 REMOVE 即确认移除。" : "输入 REMOVE 即确认移除，移除后不能再查看家庭照片。",
+      label: "成员操作",
+      placeholder: actor.role === "OWNER" ? "ADMIN / MEMBER / REMOVE" : "REMOVE",
+      value: actor.role === "OWNER" ? target.role : "",
+      confirmText: "执行",
+    }, (value) => {
+      const action = value.toUpperCase();
+      if (["ADMIN", "MEMBER"].includes(action) && actor.role === "OWNER") {
+        target.role = action;
+        save();
+        renderProfile();
+        showToast("成员角色已更新");
+        return;
+      }
+      if (action === "REMOVE") {
+        state.memberships = state.memberships.filter((item) => item !== target);
+        save();
+        renderProfile();
+        showToast("成员已移除");
+        return;
+      }
+      showToast("未执行：请输入有效操作");
+    });
+  }
+
+  function renderSystemAdmin() {
+    if (!isSystemAdmin()) return showToast("只有系统管理员可以访问此功能");
+    const stats = [
+      [state.families.length, "家庭"],
+      [state.users.length, "用户"],
+      [state.children.length, "宝宝"],
+      [state.records.length, "记录"],
+      [state.records.filter((record) => record.media).length, "素材"],
+    ];
+    document.querySelector("#system-stats").innerHTML = stats.map(([value, label]) => `<div><strong>${value}</strong><small>${label}</small></div>`).join("");
+    document.querySelector("#system-family-list").innerHTML = state.families.map((family) => {
+      const members = state.memberships.filter((item) => item.familyId === family.id);
+      const owner = userById(members.find((item) => item.role === "OWNER")?.userId);
+      const childCount = state.children.filter((item) => item.familyId === family.id).length;
+      const recordCount = state.records.filter((item) => item.familyId === family.id).length;
+      const memberRows = members.map((member) => {
+        const user = userById(member.userId);
+        return `<div class="system-member-row"><span>${escapeHtml(user?.avatar || "用")}</span><strong>${escapeHtml(user?.name || "未知用户")}</strong><small>${roleLabel(member.role)}</small>${member.role !== "OWNER" ? `<button type="button" data-system-family="${family.id}" data-system-user="${member.userId}">管理 ›</button>` : ""}</div>`;
+      }).join("");
+      return `<article class="system-family-card"><header><div><strong>${escapeHtml(family.name)}</strong><small>创建者 ${escapeHtml(owner?.name || "未知")} · ${childCount}位宝宝 · ${recordCount}条记录</small></div><em>${members.length}人</em></header>${memberRows}</article>`;
+    }).join("");
+    document.querySelectorAll("[data-system-user]").forEach((button) => button.addEventListener("click", () => manageSystemMember(button.dataset.systemFamily, button.dataset.systemUser)));
+    document.querySelector("#system-user-list").innerHTML = state.users.map((user) => {
+      const familyCount = state.memberships.filter((item) => item.userId === user.id).length;
+      const entryCount = state.records.filter((item) => item.creatorId === user.id).length;
+      return `<div class="system-user-row"><span>${escapeHtml(user.avatar)}</span><div><strong>${escapeHtml(user.name)}${user.systemAdmin ? `<em>系统管理员</em>` : ""}</strong><small>加入 ${familyCount} 个家庭 · 发布 ${entryCount} 条记录</small></div></div>`;
+    }).join("");
+  }
+
+  function manageSystemMember(familyId, userId) {
+    if (!isSystemAdmin()) return showToast("只有系统管理员可以管理全局成员");
+    const member = state.memberships.find((item) => item.familyId === familyId && item.userId === userId);
+    if (!member || member.role === "OWNER") return showToast("不能管理家庭创建者");
+    document.querySelector("#system-admin-dialog").close();
+    openActionDialog({
+      title: `系统管理 · ${userById(userId)?.name || "成员"}`,
+      intro: "输入 ADMIN、MEMBER 或 REMOVE；输入 REMOVE 即确认从该家庭移除。",
+      label: "成员操作",
+      placeholder: "ADMIN / MEMBER / REMOVE",
+      value: member.role,
+      confirmText: "执行",
+    }, (value) => {
+      const action = value.toUpperCase();
+      if (["ADMIN", "MEMBER"].includes(action)) {
+        member.role = action;
+        save();
+        renderSystemAdmin();
+        document.querySelector("#system-admin-dialog").showModal();
+        showToast("全局成员角色已更新");
+        return;
+      }
+      if (action === "REMOVE") {
+        state.memberships = state.memberships.filter((item) => item !== member);
+        save();
+        renderSystemAdmin();
+        document.querySelector("#system-admin-dialog").showModal();
+        showToast("成员已从家庭移除");
+        return;
+      }
+      showToast("未执行：请输入有效操作");
+    });
+  }
+
+  function renderExports() {
+    const jobs = state.exports.filter((job) => job.familyId === state.activeFamilyId);
+    document.querySelector("#export-list").innerHTML = jobs.length ? jobs.map((job) => {
+      const child = childById(job.childId);
+      const label = { READY: "演示包已生成", DOWNLOADED: "已模拟下载", CONFIRMED: "已人工确认上传夸克" }[job.status];
+      const action = job.status === "READY" ? `<button type="button" data-download="${job.id}">模拟下载 ZIP</button>` : job.status === "DOWNLOADED" ? `<button type="button" data-confirm="${job.id}">确认已人工上传夸克</button>` : "";
+      return `<article class="export-job"><header><strong>${escapeHtml(child?.name || "宝宝")} · ${job.month}</strong><span class="status">${label}</span></header><p>模拟分卷：${job.parts} 个 · 无真实文件</p>${action}</article>`;
+    }).join("") : `<p class="dialog-intro">还没有导出任务。</p>`;
+    document.querySelectorAll("[data-download]").forEach((button) => button.addEventListener("click", () => updateExport(button.dataset.download, "DOWNLOADED")));
+    document.querySelectorAll("[data-confirm]").forEach((button) => button.addEventListener("click", () => updateExport(button.dataset.confirm, "CONFIRMED")));
+  }
+
+  function updateExport(id, status) {
+    const job = state.exports.find((item) => item.id === id);
+    if (job) job.status = status;
+    save();
+    renderExports();
+    showToast(status === "DOWNLOADED" ? "已模拟下载" : "已记录人工确认");
+  }
+
+  function renderAll() {
+    if (state.activeFamilyId && !currentMembership()) {
+      state.activeFamilyId = "";
+      state.activeChildId = "";
+      save();
+    }
+    renderPublishOptions();
+    renderWall();
+    renderGrowth();
+    renderProfile();
+    renderExports();
+  }
+
+  document.querySelectorAll(".tab-bar button, [data-jump]").forEach((button) => button.addEventListener("click", () => navigate(button.dataset.target || button.dataset.jump)));
+  document.querySelectorAll("[data-close]").forEach((button) => button.addEventListener("click", () => document.querySelector(`#${button.dataset.close}`).close()));
+  document.querySelectorAll(".app-dialog").forEach((dialog) => dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); }));
+  document.querySelector("#action-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const value = document.querySelector("#action-input").value.trim();
+    if (!value) return;
+    const handler = actionSubmit;
+    actionSubmit = undefined;
+    document.querySelector("#action-dialog").close();
+    handler?.(value);
+  });
+
+  document.querySelectorAll("#entry-kind button").forEach((button) => button.addEventListener("click", () => {
+    entryKind = button.dataset.kind;
+    document.querySelectorAll("#entry-kind button").forEach((item) => item.classList.toggle("active", item === button));
+    document.querySelector("#milestone-fields").hidden = entryKind !== "MILESTONE";
+  }));
+
+  document.querySelectorAll("#metric-picker button").forEach((button) => button.addEventListener("click", () => {
+    metricType = metricType === button.dataset.metric ? "" : button.dataset.metric;
+    document.querySelectorAll("#metric-picker button").forEach((item) => item.classList.toggle("active", item.dataset.metric === metricType));
+    document.querySelector("#metric-value-wrap").hidden = !metricType;
+    document.querySelector("#metric-unit").textContent = metricType === "WEIGHT" ? "kg" : "cm";
+  }));
+
+  document.querySelectorAll("#metric-tabs button").forEach((button) => button.addEventListener("click", () => {
+    state.growthType = button.dataset.type;
+    save();
+    renderGrowth();
+  }));
+
+  document.querySelector("#publish-title").addEventListener("input", (event) => { document.querySelector("#title-count").textContent = event.target.value.length; });
+  document.querySelector("#publish-body").addEventListener("input", (event) => { document.querySelector("#body-count").textContent = event.target.value.length; });
+  document.querySelector("#mock-media").addEventListener("click", () => {
+    hasMockMedia = !hasMockMedia;
+    document.querySelector("#media-hint").textContent = hasMockMedia ? "已添加 1 个演示照片占位" : "未添加素材";
+    showToast(hasMockMedia ? "已添加演示素材" : "已移除演示素材");
+  });
+
+  document.querySelector("#publish-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!currentMembership()) return showToast("你不是该家庭成员，无法发布记录");
+    const title = document.querySelector("#publish-title").value.trim();
+    const body = document.querySelector("#publish-body").value.trim();
+    const date = document.querySelector("#publish-date").value;
+    const childId = document.querySelector("#publish-child").value;
+    if (!title || !date || !childId) return;
+    const value = Number(document.querySelector("#metric-value").value);
+    state.records.push({
+      id: `r-${Date.now()}`,
+      familyId: state.activeFamilyId,
+      childId,
+      creatorId: currentUser().id,
+      kind: entryKind,
+      title,
+      body,
+      date,
+      event: entryKind === "MILESTONE" ? document.querySelector("#custom-event").value.trim() : "",
+      metric: entryKind === "MILESTONE" && metricType && value > 0 ? { type: metricType, value, unit: metricType === "WEIGHT" ? "kg" : "cm" } : undefined,
+      media: hasMockMedia ? "image" : undefined,
+      tone: "peach",
+    });
+    save();
+    event.target.reset();
+    document.querySelector("#publish-date").value = today;
+    hasMockMedia = false;
+    document.querySelector("#media-hint").textContent = "未添加素材";
+    document.querySelector("#title-count").textContent = "0";
+    document.querySelector("#body-count").textContent = "0";
+    renderAll();
+    navigate("wall");
+    showToast("成长记录已加入本地原型");
+  });
+
+  document.querySelector("#create-invite").addEventListener("click", () => {
+    if (!isAdmin()) return showToast("只有管理员可以创建邀请");
+    let code;
+    do code = String(Math.floor(100000 + Math.random() * 900000));
+    while (state.invites.some((invite) => invite.code === code && !invite.usedAt));
+    state.invites.unshift({
+      id: `invite-${Date.now()}`,
+      familyId: state.activeFamilyId,
+      creatorId: state.activeUserId,
+      code,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    });
+    save();
+    const card = document.querySelector("#invite-card");
+    card.hidden = false;
+    card.innerHTML = `<small>一次性家庭邀请码</small><strong>${code}</strong><small>演示邀请码，24小时后失效</small>`;
+    showToast("已生成演示邀请码");
+  });
+
+  document.querySelector("#add-child").addEventListener("click", () => showToast("新增宝宝表单请以小程序版本为准"));
+  document.querySelector("#wall-change-family").addEventListener("click", () => {
+    state.activeFamilyId = "";
+    state.activeChildId = "";
+    save();
+    renderContext("FAMILY");
+  });
+  document.querySelector("#back-family").addEventListener("click", () => {
+    state.activeFamilyId = "";
+    state.activeChildId = "";
+    save();
+    renderContext("FAMILY");
+  });
+  document.querySelector("#create-family").addEventListener("click", () => {
+    openActionDialog({ title: "创建家庭", label: "家庭名称", placeholder: "请输入2至20个字", confirmText: "创建" }, (name) => {
+      if (name.length < 2 || name.length > 20) return showToast("家庭名称请输入2至20个字");
+      const family = { id: `family-${Date.now()}`, name, color: "#D28FA2" };
+      state.families.push(family);
+      state.memberships.push({ familyId: family.id, userId: state.activeUserId, role: "OWNER" });
+      state.activeFamilyId = family.id;
+      state.activeChildId = "";
+      save();
+      renderContext("CHILD");
+      showToast("家庭已创建");
+    });
+  });
+  document.querySelector("#open-system-admin").addEventListener("click", () => {
+    if (!isSystemAdmin()) return showToast("只有系统管理员可以访问此功能");
+    renderSystemAdmin();
+    document.querySelector("#system-admin-dialog").showModal();
+  });
+  document.querySelector("#join-family").addEventListener("click", () => {
+    openActionDialog({ title: "加入家庭", label: "一次性邀请码", placeholder: "请输入6位邀请码", confirmText: "加入" }, (code) => {
+      const invite = state.invites.find((item) => item.code === code && !item.usedAt && new Date(item.expiresAt).getTime() > Date.now());
+      if (!invite) return showToast("邀请码无效、已使用或已过期");
+      if (state.memberships.some((item) => item.familyId === invite.familyId && item.userId === state.activeUserId)) return showToast("你已经是该家庭成员");
+      state.memberships.push({ familyId: invite.familyId, userId: state.activeUserId, role: "MEMBER" });
+      invite.usedAt = new Date().toISOString();
+      state.activeFamilyId = invite.familyId;
+      state.activeChildId = "";
+      save();
+      renderContext("CHILD");
+      showToast("已加入家庭");
+    });
+  });
+  document.querySelector("#publish-child").addEventListener("change", (event) => {
+    state.activeChildId = event.target.value;
+    save();
+    renderAll();
+  });
+  document.querySelector("#open-export").addEventListener("click", () => {
+    renderPublishOptions();
+    renderExports();
+    document.querySelector("#export-dialog").showModal();
+  });
+  document.querySelector("#export-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!isAdmin()) return showToast("只有管理员可以创建导出");
+    state.exports.unshift({ id: `e-${Date.now()}`, familyId: state.activeFamilyId, childId: document.querySelector("#export-child").value, month: document.querySelector("#export-month").value, status: "READY", parts: 1 });
+    save();
+    renderExports();
+    showToast("已生成演示导出任务");
+  });
+  document.querySelector("#reset-demo").addEventListener("click", () => {
+    openActionDialog({
+      title: "重置演示数据",
+      intro: "此操作会清除你新增的家庭、成员、宝宝和记录。请输入 RESET 确认。",
+      label: "确认文字",
+      placeholder: "RESET",
+      confirmText: "确认重置",
+    }, (value) => {
+      if (value.toUpperCase() !== "RESET") return showToast("未重置：请输入 RESET");
+      state = seed();
+      save();
+      renderAll();
+      renderContext("FAMILY");
+      showToast("演示数据已重置");
+    });
+  });
+
+  document.querySelector("#publish-date").value = today;
+  document.querySelector("#export-month").value = month;
+  renderAll();
+  renderContext(state.activeFamilyId ? "CHILD" : "FAMILY");
+})();
+
+    </script>
+  </body>
+</html>

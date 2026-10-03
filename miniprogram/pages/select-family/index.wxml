@@ -9,6 +9,22 @@
   </view>
 
   <view wx:if="{{step === 'FAMILY'}}" class="select-content">
+    <view class="account-switch">
+      <text>演示账号</text>
+      <view class="account-list">
+        <view wx:for="{{users}}" wx:key="id" class="account-chip {{item.active ? 'active' : ''}}" data-id="{{item.id}}" bindtap="switchUser">
+          {{item.avatarText}} · {{item.nickname}}
+        </view>
+      </view>
+    </view>
+    <view wx:if="{{isSystemAdmin}}" class="system-admin-entry" bindtap="openSystemAdmin">
+      <view class="system-admin-icon">管</view>
+      <view class="system-admin-copy">
+        <text>系统管理中心</text>
+        <text>管理全部家庭、用户与成员权限</text>
+      </view>
+      <text class="system-admin-arrow">›</text>
+    </view>
     <text class="step-label">第一步 · 选择家庭</text>
     <text class="select-title">今天要进入哪个<text class="accent">家庭空间</text>？</text>
     <text class="select-subtitle">每个家庭拥有独立的宝宝、成员、记录与素材，数据不会混在一起。</text>
@@ -25,6 +41,7 @@
     </view>
 
     <button class="outline-button" bindtap="createFamily">＋ 创建新的家庭空间</button>
+    <button class="join-button" bindtap="joinFamily">输入邀请码加入家庭</button>
   </view>
 
   <view wx:else class="select-content">

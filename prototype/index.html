@@ -42,11 +42,19 @@
         <section class="context-gate" id="context-gate" aria-label="选择家庭和宝宝">
           <div class="gate-brand"><span>长</span><div><strong>成长日记</strong><small>GROWTH DIARY</small></div></div>
           <div class="gate-step" id="family-step">
+            <div class="gate-account-switch">
+              <small>演示账号（用于验收邀请码和权限）</small>
+              <div id="gate-account-list"></div>
+            </div>
+            <button class="gate-system-admin" type="button" id="open-system-admin" hidden>
+              <span>管</span><span><strong>系统管理中心</strong><small>管理全部家庭、用户与成员权限</small></span><b>›</b>
+            </button>
             <p class="eyebrow coral">第一步 · 选择家庭</p>
             <h2>今天要进入哪个<br /><em>家庭空间</em>？</h2>
             <p>每个家庭拥有独立的宝宝、成员、记录与素材。</p>
             <div class="gate-family-list" id="gate-family-list"></div>
             <button class="gate-outline" type="button" id="create-family">＋ 创建新的家庭空间</button>
+            <button class="gate-join" type="button" id="join-family">输入邀请码加入家庭</button>
           </div>
           <div class="gate-step" id="child-step" hidden>
             <button class="gate-back" type="button" id="back-family">‹ 返回选择家庭</button>
@@ -205,6 +213,29 @@
         <button class="primary-action" type="submit">生成演示导出</button>
       </form>
       <div id="export-list" class="export-list"></div>
+    </dialog>
+
+    <dialog class="app-dialog action-dialog" id="action-dialog">
+      <button class="dialog-close" type="button" data-close="action-dialog" aria-label="关闭">×</button>
+      <p class="eyebrow coral">FAMILY ACTION</p>
+      <h2 id="action-title">家庭操作</h2>
+      <p class="dialog-intro" id="action-intro"></p>
+      <form id="action-form" class="dialog-form">
+        <label><span id="action-label">请输入内容</span><input id="action-input" autocomplete="off" required /></label>
+        <button class="primary-action" id="action-confirm" type="submit">确认</button>
+      </form>
+    </dialog>
+
+    <dialog class="app-dialog system-admin-dialog" id="system-admin-dialog">
+      <button class="dialog-close" type="button" data-close="system-admin-dialog" aria-label="关闭">×</button>
+      <p class="eyebrow coral">SYSTEM ADMIN</p>
+      <h2>系统管理中心</h2>
+      <p class="dialog-intro">管理全局用户和家庭成员权限。为保护家庭隐私，这里不展示宝宝照片和视频。</p>
+      <div class="system-stats" id="system-stats"></div>
+      <h3>全部家庭</h3>
+      <div class="system-family-list" id="system-family-list"></div>
+      <h3>全部用户</h3>
+      <div class="system-user-list" id="system-user-list"></div>
     </dialog>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>

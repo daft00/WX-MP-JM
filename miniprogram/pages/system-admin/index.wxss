@@ -1,0 +1,32 @@
+.admin-page { min-height: 100vh; padding: 0 28rpx 70rpx; background: #f7f3ee; }
+.admin-hero { display: flex; flex-direction: column; margin: 0 -28rpx 26rpx; padding: 48rpx 32rpx 42rpx; background: #443a34; color: #fffaf4; }
+.admin-kicker { color: #eeb29f; font-size: 20rpx; font-weight: 700; letter-spacing: 4rpx; }
+.admin-title { margin-top: 12rpx; font-size: 46rpx; font-weight: 700; }
+.admin-subtitle { margin-top: 12rpx; color: #d8cdc6; font-size: 24rpx; }
+.privacy-banner { padding: 20rpx 22rpx; border-radius: 20rpx; background: #fff0e9; color: #985843; font-size: 22rpx; line-height: 1.6; }
+.stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10rpx; margin: 24rpx 0 34rpx; }
+.stat-card { display: flex; align-items: center; flex-direction: column; padding: 20rpx 4rpx; border-radius: 18rpx; background: #fff; box-shadow: 0 8rpx 20rpx rgba(72,54,43,.05); }
+.stat-card text:first-child { color: #c96f54; font-size: 34rpx; font-weight: 700; }
+.stat-card text:last-child { margin-top: 4rpx; color: #94867d; font-size: 18rpx; }
+.section-title { display: block; margin: 30rpx 0 16rpx; font-size: 29rpx; font-weight: 700; }
+.family-admin-card, .user-admin-card { margin-bottom: 18rpx; overflow: hidden; border-radius: 24rpx; background: #fff; box-shadow: 0 10rpx 28rpx rgba(72,54,43,.06); }
+.family-admin-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 24rpx; border-bottom: 1rpx solid #f0e7e0; }
+.family-admin-head > view { display: flex; flex: 1; flex-direction: column; gap: 8rpx; }
+.family-admin-name { font-size: 29rpx; font-weight: 700; }
+.family-admin-meta { color: #93857c; font-size: 19rpx; line-height: 1.5; }
+.member-count { margin-left: 12rpx; padding: 7rpx 12rpx; border-radius: 999rpx; background: #edf5ee; color: #64806b; font-size: 19rpx; }
+.admin-member-list { padding: 0 24rpx; }
+.admin-member-row { display: flex; align-items: center; min-height: 86rpx; border-bottom: 1rpx solid #f2ebe5; }
+.admin-member-row:last-child { border-bottom: 0; }
+.admin-member-avatar { display: flex; align-items: center; justify-content: center; width: 48rpx; height: 48rpx; margin-right: 14rpx; border-radius: 50%; background: #f0dfd4; color: #9b6754; font-size: 20rpx; font-weight: 700; }
+.admin-member-name { flex: 1; font-size: 23rpx; }
+.admin-role { padding: 6rpx 10rpx; border-radius: 999rpx; background: #f4f1ed; color: #83776e; font-size: 18rpx; }
+.role-OWNER, .role-ADMIN { background: #fff0e9; color: #be6a50; }
+.admin-manage { margin-left: 10rpx; color: #b86b54; font-size: 19rpx; font-weight: 600; }
+.user-admin-card { padding: 0 24rpx; }
+.user-admin-row { display: flex; align-items: center; min-height: 92rpx; border-bottom: 1rpx solid #f2ebe5; }
+.user-admin-row:last-child { border-bottom: 0; }
+.user-admin-copy { display: flex; flex: 1; flex-direction: column; gap: 6rpx; }
+.user-admin-copy > text:first-child { font-size: 24rpx; font-weight: 700; }
+.user-admin-copy > text:last-child { color: #94867d; font-size: 19rpx; }
+.system-badge { margin-left: 10rpx; padding: 5rpx 9rpx; border-radius: 999rpx; background: #443a34; color: #fff; font-size: 16rpx; }

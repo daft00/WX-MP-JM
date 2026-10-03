@@ -1,0 +1,47 @@
+<view class="admin-page" wx:if="{{dashboard}}">
+  <view class="admin-hero">
+    <text class="admin-kicker">SYSTEM ADMIN</text>
+    <text class="admin-title">系统管理中心</text>
+    <text class="admin-subtitle">查看全局运行情况，维护家庭成员权限。</text>
+  </view>
+
+  <view class="privacy-banner">系统管理员默认只查看统计与成员关系，不直接读取宝宝照片和视频。</view>
+
+  <view class="stats-grid">
+    <view class="stat-card"><text>{{dashboard.familyCount}}</text><text>家庭</text></view>
+    <view class="stat-card"><text>{{dashboard.userCount}}</text><text>用户</text></view>
+    <view class="stat-card"><text>{{dashboard.childCount}}</text><text>宝宝</text></view>
+    <view class="stat-card"><text>{{dashboard.entryCount}}</text><text>记录</text></view>
+    <view class="stat-card"><text>{{dashboard.assetCount}}</text><text>素材</text></view>
+  </view>
+
+  <text class="section-title">全部家庭</text>
+  <view wx:for="{{families}}" wx:key="id" class="family-admin-card">
+    <view class="family-admin-head">
+      <view>
+        <text class="family-admin-name">{{item.family.name}}</text>
+        <text class="family-admin-meta">创建者 {{item.ownerName}} · {{item.childCount}}位宝宝 · {{item.entryCount}}条记录 · {{item.assetCount}}个素材</text>
+      </view>
+      <text class="member-count">{{item.members.length}}人</text>
+    </view>
+    <view class="admin-member-list">
+      <view wx:for="{{item.members}}" wx:for-item="member" wx:key="id" class="admin-member-row" data-family="{{item.family.id}}" data-member="{{member.id}}" bindtap="manageMember">
+        <view class="admin-member-avatar">{{member.user.avatarText}}</view>
+        <text class="admin-member-name">{{member.user.nickname}}</text>
+        <text class="admin-role role-{{member.role}}">{{member.roleLabel}}</text>
+        <text wx:if="{{member.canManage}}" class="admin-manage">管理 ›</text>
+      </view>
+    </view>
+  </view>
+
+  <text class="section-title">全部用户</text>
+  <view class="user-admin-card">
+    <view wx:for="{{dashboard.users}}" wx:key="user.id" class="user-admin-row">
+      <view class="admin-member-avatar">{{item.user.avatarText}}</view>
+      <view class="user-admin-copy">
+        <text>{{item.user.nickname}}<text wx:if="{{item.user.systemRole === 'SYSTEM_ADMIN'}}" class="system-badge">系统管理员</text></text>
+        <text>加入 {{item.familyCount}} 个家庭 · 发布 {{item.entryCount}} 条记录</text>
+      </view>
+    </view>
+  </view>
+</view>

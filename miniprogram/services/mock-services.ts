@@ -13,6 +13,7 @@ import {
   PrototypeState,
   Role,
   Session,
+  SystemAdminDashboard,
 } from "../types/models";
 import { addHours } from "../utils/date";
 import { createId, createInviteCode } from "../utils/id";
@@ -25,11 +26,12 @@ import {
   FamilyService,
   LocalMediaFile,
   ServiceContainer,
+  SystemAdminService,
   UploadService,
 } from "./contracts";
 import { createSeedState } from "./mock-state";
 
-const STORAGE_KEY = "growth_diary_prototype_state_v2";
+const STORAGE_KEY = "growth_diary_prototype_state_v3";
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -37,7 +39,13 @@ function clone<T>(value: T): T {
 
 function loadState(): PrototypeState {
   const stored = wx.getStorageSync(STORAGE_KEY) as PrototypeState | "";
-  if (stored && stored.version === 2) {
+  if (stored && (stored.version === 3 || stored.version === 4)) {
+    if (stored.version === 3) {
+      stored.version = 4;
+      const systemAdmin = stored.users.find((item) => item.id === "user_mom");
+      if (systemAdmin) systemAdmin.systemRole = "SYSTEM_ADMIN";
+      wx.setStorageSync(STORAGE_KEY, stored);
+    }
     return stored;
   }
   const seed = createSeedState();
@@ -62,6 +70,26 @@ function findSession(state: PrototypeState, userId = state.activeUserId): Sessio
     throw new Error("家庭空间不存在");
   }
   return clone({ user, membership, family });
+}
+
+function requireActiveSession(state: PrototypeState): Session {
+  const user = state.users.find((item) => item.id === state.activeUserId);
+  const membership = state.members.find(
+    (item) => item.userId === state.activeUserId && item.familyId === state.activeFamilyId,
+  );
+  const family = state.families.find((item) => item.id === state.activeFamilyId);
+  if (!user || !membership || !family) {
+    throw new Error("你不是该家庭成员，无法查看宝宝照片");
+  }
+  return clone({ user, membership, family });
+}
+
+function requireSystemAdmin(state: PrototypeState) {
+  const user = state.users.find((item) => item.id === state.activeUserId);
+  if (!user || user.systemRole !== "SYSTEM_ADMIN") {
+    throw new Error("只有系统管理员可以访问此功能");
+  }
+  return user;
 }
 
 function isAdmin(role: Role): boolean {
@@ -94,9 +122,13 @@ class MockAuthService implements AuthService {
     return findSession(loadState());
   }
 
+  async listPrototypeUsers() {
+    return clone(loadState().users);
+  }
+
   async listPrototypeSessions(): Promise<Session[]> {
     const state = loadState();
-    const session = findSession(state);
+    const session = requireActiveSession(state);
     return state.members
       .filter((member) => member.familyId === session.family.id)
       .map((member) => findSession({ ...state, activeFamilyId: session.family.id }, member.userId));
@@ -129,12 +161,12 @@ class MockFamilyService implements FamilyService {
   }
 
   async getCurrentFamily(): Promise<Family> {
-    return findSession(loadState()).family;
+    return requireActiveSession(loadState()).family;
   }
 
   async listMembers(): Promise<FamilyMember[]> {
     const state = loadState();
-    const session = findSession(state);
+    const session = requireActiveSession(state);
     return clone(state.members.filter((item) => item.familyId === session.family.id));
   }
 
@@ -160,11 +192,9 @@ class MockFamilyService implements FamilyService {
 
   async selectChild(childId: Id): Promise<Child> {
     const state = loadState();
-    if (!state.activeFamilyId) {
-      throw new Error("请先选择家庭");
-    }
+    const session = requireActiveSession(state);
     const child = state.children.find(
-      (item) => item.id === childId && item.familyId === state.activeFamilyId,
+      (item) => item.id === childId && item.familyId === session.family.id,
     );
     if (!child) {
       throw new Error("该宝宝不属于当前家庭");
@@ -181,35 +211,131 @@ class MockFamilyService implements FamilyService {
     saveState(state);
   }
 
+  async createFamily(name: string): Promise<Family> {
+    const state = loadState();
+    const user = state.users.find((item) => item.id === state.activeUserId);
+    const normalizedName = name.trim();
+    if (!user) {
+      throw new Error("演示用户不存在");
+    }
+    if (normalizedName.length < 2 || normalizedName.length > 20) {
+      throw new Error("家庭名称请输入2至20个字");
+    }
+    const family: Family = {
+      id: createId("family"),
+      name: normalizedName,
+      ownerId: user.id,
+      createdAt: new Date().toISOString(),
+    };
+    state.families.push(family);
+    state.members.push({
+      id: createId("member"),
+      familyId: family.id,
+      userId: user.id,
+      role: "OWNER",
+      joinedAt: new Date().toISOString(),
+      user: clone(user),
+    });
+    state.activeFamilyId = family.id;
+    state.activeChildId = "";
+    saveState(state);
+    return clone(family);
+  }
+
   async createInvite(): Promise<Invite> {
     const state = loadState();
-    const session = findSession(state);
+    const session = requireActiveSession(state);
     if (!isAdmin(session.membership.role)) {
       throw new Error("只有管理员可以创建邀请");
+    }
+    let code = createInviteCode();
+    while (state.invites.some((item) => item.code === code && !item.usedAt)) {
+      code = createInviteCode();
     }
     const invite: Invite = {
       id: createId("invite"),
       familyId: session.family.id,
       creatorId: session.user.id,
-      code: createInviteCode(),
+      code,
       expiresAt: addHours(new Date(), 24),
     };
     state.invites.unshift(invite);
     saveState(state);
     return clone(invite);
   }
+
+  async joinFamily(code: string): Promise<Family> {
+    const state = loadState();
+    const normalizedCode = code.trim().toUpperCase();
+    const invite = state.invites.find((item) => item.code.toUpperCase() === normalizedCode);
+    if (!invite || invite.usedAt || new Date(invite.expiresAt).getTime() <= Date.now()) {
+      throw new Error("邀请码无效、已使用或已过期");
+    }
+    if (state.members.some((item) => item.familyId === invite.familyId && item.userId === state.activeUserId)) {
+      throw new Error("你已经是该家庭成员");
+    }
+    const user = state.users.find((item) => item.id === state.activeUserId);
+    const family = state.families.find((item) => item.id === invite.familyId);
+    if (!user || !family) {
+      throw new Error("家庭空间不存在");
+    }
+    state.members.push({
+      id: createId("member"),
+      familyId: family.id,
+      userId: user.id,
+      role: "MEMBER",
+      joinedAt: new Date().toISOString(),
+      user: clone(user),
+    });
+    invite.usedAt = new Date().toISOString();
+    state.activeFamilyId = family.id;
+    state.activeChildId = "";
+    saveState(state);
+    return clone(family);
+  }
+
+  async updateMemberRole(memberId: Id, role: "ADMIN" | "MEMBER"): Promise<FamilyMember> {
+    const state = loadState();
+    const session = requireActiveSession(state);
+    if (session.membership.role !== "OWNER") {
+      throw new Error("只有家庭创建者可以调整成员角色");
+    }
+    const member = state.members.find((item) => item.id === memberId && item.familyId === session.family.id);
+    if (!member || member.role === "OWNER" || member.userId === session.user.id) {
+      throw new Error("不能调整该成员的角色");
+    }
+    member.role = role;
+    saveState(state);
+    return clone(member);
+  }
+
+  async removeMember(memberId: Id): Promise<void> {
+    const state = loadState();
+    const session = requireActiveSession(state);
+    const member = state.members.find((item) => item.id === memberId && item.familyId === session.family.id);
+    if (!member || member.role === "OWNER" || member.userId === session.user.id) {
+      throw new Error("不能移除该成员");
+    }
+    const canRemove = session.membership.role === "OWNER"
+      || (session.membership.role === "ADMIN" && member.role === "MEMBER");
+    if (!canRemove) {
+      throw new Error("没有权限移除该成员");
+    }
+    state.members = state.members.filter((item) => item.id !== memberId);
+    saveState(state);
+  }
 }
 
 class MockChildService implements ChildService {
   async list(): Promise<Child[]> {
     const state = loadState();
-    const session = findSession(state);
+    const session = requireActiveSession(state);
     return clone(state.children.filter((item) => item.familyId === session.family.id));
   }
 
   async get(id: Id): Promise<Child> {
     const state = loadState();
-    const session = findSession(state);
+    const session = requireActiveSession(state);
     const child = state.children.find((item) => item.id === id && item.familyId === session.family.id);
     if (!child) {
       throw new Error("宝宝档案不存在");
@@ -219,7 +345,7 @@ class MockChildService implements ChildService {
 
   async save(draft: ChildDraft): Promise<Child> {
     const state = loadState();
-    const session = findSession(state);
+    const session = requireActiveSession(state);
     if (!isAdmin(session.membership.role)) {
       throw new Error("只有管理员可以维护宝宝档案");
     }
@@ -256,7 +382,7 @@ class MockChildService implements ChildService {
 class MockEntryService implements EntryService {
   async list(query: EntryQuery = {}): Promise<{ items: Entry[]; nextCursor?: string }> {
     const state = loadState();
-    const session = findSession(state);
+    const session = requireActiveSession(state);
     const pageSize = query.pageSize || 10;
     const offset = Number(query.cursor || "0");
     const matched = state.entries
@@ -273,7 +399,7 @@ class MockEntryService implements EntryService {
 
   async get(id: Id): Promise<Entry> {
     const state = loadState();
-    const session = findSession(state);
+    const session = requireActiveSession(state);
     const entry = state.entries.find((item) => item.id === id && item.familyId === session.family.id);
     if (!entry) {
       throw new Error("记录不存在或无权访问");
@@ -283,7 +409,7 @@ class MockEntryService implements EntryService {
 
   async save(draft: EntryDraft): Promise<Entry> {
     const state = loadState();
-    const session = findSession(state);
+    const session = requireActiveSession(state);
     const child = state.children.find(
       (item) => item.id === draft.childId && item.familyId === session.family.id,
     );
@@ -323,7 +449,7 @@ class MockEntryService implements EntryService {
 
   async deletePermanent(id: Id): Promise<void> {
     const state = loadState();
-    const session = findSession(state);
+    const session = requireActiveSession(state);
     if (!isAdmin(session.membership.role)) {
       throw new Error("只有管理员可以永久删除记录");
     }
@@ -337,12 +463,13 @@ class MockEntryService implements EntryService {
   }
 
   async canEdit(entry: Entry): Promise<boolean> {
-    const session = findSession(loadState());
-    return isAdmin(session.membership.role) || entry.creatorId === session.user.id;
+    const session = requireActiveSession(loadState());
+    return entry.familyId === session.family.id
+      && (isAdmin(session.membership.role) || entry.creatorId === session.user.id);
   }
 
   async canDelete(): Promise<boolean> {
-    return isAdmin(findSession(loadState()).membership.role);
+    return isAdmin(requireActiveSession(loadState()).membership.role);
   }
 
   private composeEntry(
@@ -389,7 +516,7 @@ class MockEntryService implements EntryService {
 class MockUploadService implements UploadService {
   async saveLocalMedia(childId: Id, files: LocalMediaFile[]): Promise<Asset[]> {
     const state = loadState();
-    const session = findSession(state);
+    const session = requireActiveSession(state);
     const child = state.children.find(
       (item) => item.id === childId && item.familyId === session.family.id,
     );
@@ -422,7 +549,7 @@ class MockUploadService implements UploadService {
 
   async getAssets(ids: Id[]): Promise<Asset[]> {
     const state = loadState();
-    const session = findSession(state);
+    const session = requireActiveSession(state);
     return clone(
       ids
         .map((id) => state.assets.find((item) => item.id === id && item.familyId === session.family.id))
@@ -434,7 +561,7 @@ class MockUploadService implements UploadService {
 class MockExportService implements ExportService {
   async list(): Promise<ExportJob[]> {
     const state = loadState();
-    const session = findSession(state);
+    const session = requireActiveSession(state);
     return clone(
       state.exports
         .filter((item) => item.familyId === session.family.id)
@@ -444,7 +571,7 @@ class MockExportService implements ExportService {
 
   async create(childId: Id, selectedYearMonth: string): Promise<ExportJob> {
     const state = loadState();
-    const session = findSession(state);
+    const session = requireActiveSession(state);
     if (!isAdmin(session.membership.role)) {
       throw new Error("只有管理员可以创建素材导出");
     }
@@ -483,7 +610,7 @@ class MockExportService implements ExportService {
 
   private async updateStatus(id: Id, status: "DOWNLOADED" | "CONFIRMED"): Promise<ExportJob> {
     const state = loadState();
-    const session = findSession(state);
+    const session = requireActiveSession(state);
     if (!isAdmin(session.membership.role)) {
       throw new Error("只有管理员可以更新素材导出状态");
     }
@@ -502,6 +629,63 @@ class MockExportService implements ExportService {
   }
 }
 
+class MockSystemAdminService implements SystemAdminService {
+  async getDashboard(): Promise<SystemAdminDashboard> {
+    const state = loadState();
+    requireSystemAdmin(state);
+    return clone({
+      familyCount: state.families.length,
+      userCount: state.users.length,
+      childCount: state.children.length,
+      entryCount: state.entries.length,
+      assetCount: state.assets.length,
+      families: state.families.map((family) => {
+        const members = state.members.filter((item) => item.familyId === family.id);
+        return {
+          family,
+          ownerName: state.users.find((item) => item.id === family.ownerId)?.nickname || "未知用户",
+          members,
+          childCount: state.children.filter((item) => item.familyId === family.id).length,
+          entryCount: state.entries.filter((item) => item.familyId === family.id).length,
+          assetCount: state.assets.filter((item) => item.familyId === family.id).length,
+        };
+      }),
+      users: state.users.map((user) => ({
+        user,
+        familyCount: state.members.filter((item) => item.userId === user.id).length,
+        entryCount: state.entries.filter((item) => item.creatorId === user.id).length,
+      })),
+    });
+  }
+
+  async updateMemberRole(
+    familyId: Id,
+    memberId: Id,
+    role: "ADMIN" | "MEMBER",
+  ): Promise<FamilyMember> {
+    const state = loadState();
+    requireSystemAdmin(state);
+    const member = state.members.find((item) => item.id === memberId && item.familyId === familyId);
+    if (!member || member.role === "OWNER") {
+      throw new Error("不能调整家庭创建者的角色");
+    }
+    member.role = role;
+    saveState(state);
+    return clone(member);
+  }
+
+  async removeMember(familyId: Id, memberId: Id): Promise<void> {
+    const state = loadState();
+    requireSystemAdmin(state);
+    const member = state.members.find((item) => item.id === memberId && item.familyId === familyId);
+    if (!member || member.role === "OWNER") {
+      throw new Error("不能移除家庭创建者");
+    }
+    state.members = state.members.filter((item) => item.id !== memberId);
+    saveState(state);
+  }
+}
+
 export const mockServices: ServiceContainer = {
   auth: new MockAuthService(),
   family: new MockFamilyService(),
@@ -509,4 +693,5 @@ export const mockServices: ServiceContainer = {
   entries: new MockEntryService(),
   uploads: new MockUploadService(),
   exports: new MockExportService(),
+  systemAdmin: new MockSystemAdminService(),
 };

@@ -28,6 +28,7 @@
 .member-name { flex: 1; }
 .role-chip { padding: 7rpx 12rpx; border-radius: 999rpx; background: #f4f1ed; color: #83776e; font-size: 20rpx; }
 .role-OWNER, .role-ADMIN { background: #fff0e9; color: #be6a50; }
+.manage-member { margin-left: 12rpx; color: #b86b54; font-size: 21rpx; font-weight: 600; }
 .invite-card { display: flex; align-items: center; flex-direction: column; margin-top: 18rpx; padding: 28rpx; }
 .invite-label { color: var(--muted); font-size: 23rpx; }
 .invite-code { margin: 12rpx 0; color: #be6b52; font-size: 54rpx; font-weight: 700; letter-spacing: 12rpx; }

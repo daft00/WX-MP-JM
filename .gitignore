@@ -6,3 +6,15 @@ project.private.config.json
 .env
 .env.*
 !.env.example
+
+# Local credentials and database connection files
+*.pem
+*.key
+*.p12
+*.pfx
+id_ed25519*
+id_rsa*
+database.env
+app.cnf
+migration.cnf
+backups/

@@ -1,5 +1,5 @@
 import { services } from "../../services/index";
-import { Child, Family, Session } from "../../types/models";
+import { Child, Family, Session, User } from "../../types/models";
 import { calculateAge } from "../../utils/date";
 
 interface FamilyCard extends Family {
@@ -12,14 +12,20 @@ interface ChildCard extends Child {
   ageLabel: string;
 }
 
+interface UserCard extends User {
+  active: boolean;
+}
+
 Page({
   data: {
     step: "FAMILY" as "FAMILY" | "CHILD",
     session: null as Session | null,
+    users: [] as UserCard[],
     families: [] as FamilyCard[],
     selectedFamily: null as Family | null,
     children: [] as ChildCard[],
     loading: true,
+    isSystemAdmin: false,
   },
 
   async onLoad() {
@@ -36,13 +42,16 @@ Page({
   async loadFamilies() {
     this.setData({ loading: true });
     try {
-      const [session, families] = await Promise.all([
+      const [session, families, users] = await Promise.all([
         services.auth.getSession(),
         services.family.listAccessibleFamilies(),
+        services.auth.listPrototypeUsers(),
       ]);
       const colors = ["#E98F72", "#7FA48B", "#D28FA2", "#8FA7CB"];
       this.setData({
         session,
+        isSystemAdmin: session.user.systemRole === "SYSTEM_ADMIN",
+        users: users.map((user) => ({ ...user, active: user.id === session.user.id })),
         families: families.map((family, index) => ({
           ...family,
           initial: family.name.slice(0, 1),
@@ -53,6 +62,18 @@ Page({
       wx.showToast({ title: error instanceof Error ? error.message : "家庭加载失败", icon: "none" });
     } finally {
       this.setData({ loading: false });
+    }
+  },
+
+  async switchUser(event: WechatMiniprogram.TouchEvent) {
+    try {
+      await services.auth.switchPrototypeUser(event.currentTarget.dataset.id as string);
+      await services.family.clearSelection();
+      this.setData({ step: "FAMILY", selectedFamily: null, children: [] });
+      await this.loadFamilies();
+      wx.showToast({ title: "演示身份已切换", icon: "success" });
+    } catch (error) {
+      wx.showToast({ title: error instanceof Error ? error.message : "切换失败", icon: "none" });
     }
   },
 
@@ -100,6 +121,48 @@ Page({
   },
 
   createFamily() {
-    wx.showToast({ title: "创建家庭将在后续版本开放", icon: "none" });
+    wx.showModal({
+      title: "创建家庭",
+      content: "",
+      editable: true,
+      placeholderText: "请输入家庭名称（2-20字）",
+      confirmText: "创建",
+      success: async (result) => {
+        if (!result.confirm) return;
+        try {
+          const family = await services.family.createFamily(result.content || "");
+          this.setData({ selectedFamily: family, step: "CHILD", children: [] });
+          await this.loadChildren();
+          wx.showToast({ title: "家庭已创建", icon: "success" });
+        } catch (error) {
+          wx.showToast({ title: error instanceof Error ? error.message : "创建失败", icon: "none" });
+        }
+      },
+    });
+  },
+
+  joinFamily() {
+    wx.showModal({
+      title: "加入家庭",
+      content: "",
+      editable: true,
+      placeholderText: "请输入一次性邀请码",
+      confirmText: "加入",
+      success: async (result) => {
+        if (!result.confirm) return;
+        try {
+          const family = await services.family.joinFamily(result.content || "");
+          this.setData({ selectedFamily: family, step: "CHILD", children: [] });
+          await this.loadChildren();
+          wx.showToast({ title: "已加入家庭", icon: "success" });
+        } catch (error) {
+          wx.showToast({ title: error instanceof Error ? error.message : "加入失败", icon: "none" });
+        }
+      },
+    });
+  },
+
+  openSystemAdmin() {
+    wx.navigateTo({ url: "/pages/system-admin/index" });
   },
 });

@@ -1,5 +1,5 @@
 (() => {
-  const STORAGE_KEY = "growth-diary-html-prototype-v2";
+  const STORAGE_KEY = "growth-diary-html-prototype-v3";
   const today = new Date().toISOString().slice(0, 10);
   const month = today.slice(0, 7);
 
@@ -13,7 +13,7 @@
       { id: "grandma-home", name: "外婆的小院", color: "#7FA48B" },
     ],
     users: [
-      { id: "mom", name: "妈妈", avatar: "妈" },
+      { id: "mom", name: "妈妈", avatar: "妈", systemAdmin: true },
       { id: "dad", name: "爸爸", avatar: "爸" },
       { id: "grandma", name: "外婆", avatar: "外" },
     ],
@@ -23,7 +23,6 @@
       { familyId: "warm", userId: "grandma", role: "MEMBER" },
       { familyId: "grandma-home", userId: "grandma", role: "OWNER" },
       { familyId: "grandma-home", userId: "mom", role: "ADMIN" },
-      { familyId: "grandma-home", userId: "dad", role: "MEMBER" },
     ],
     children: [
       { id: "lele", familyId: "warm", name: "乐乐", label: "宝宝", birthday: "2025-10-08", color: "#F0A58A" },
@@ -39,6 +38,7 @@
       { id: "r6", familyId: "warm", childId: "lele", creatorId: "mom", kind: "MILESTONE", title: "八月成长记录", body: "又长高了一点。", date: "2026-08-01", metric: { type: "HEIGHT", value: 70.4, unit: "cm" } },
       { id: "r7", familyId: "grandma-home", childId: "anan", creatorId: "grandma", kind: "DIARY", title: "外婆怀里的午后", body: "吃饱以后安静地睡着了，小院里只有风吹树叶的声音。", date: "2026-09-12", media: "image", tone: "sage" },
     ],
+    invites: [],
     exports: [{ id: "e1", familyId: "warm", childId: "lele", month: "2026-08", status: "CONFIRMED", parts: 1 }],
   });
 
@@ -47,10 +47,17 @@
   let metricType = "";
   let hasMockMedia = false;
   let toastTimer;
+  let actionSubmit;
 
   function load() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || seed();
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (stored) {
+        const systemAdmin = stored.users?.find((user) => user.id === "mom");
+        if (systemAdmin) systemAdmin.systemAdmin = true;
+        return stored;
+      }
+      return seed();
     } catch {
       return seed();
     }
@@ -77,6 +84,7 @@
   }
 
   function currentFamily() {
+    if (!currentMembership()) return undefined;
     return state.families.find((family) => family.id === state.activeFamilyId);
   }
 
@@ -85,16 +93,19 @@
   }
 
   function currentChildren() {
+    if (!currentMembership()) return [];
     return state.children.filter((child) => child.familyId === state.activeFamilyId);
   }
 
   function currentFamilyUsers() {
+    if (!currentMembership()) return [];
     const userIds = new Set(state.memberships.filter((item) => item.familyId === state.activeFamilyId).map((item) => item.userId));
     return state.users.filter((user) => userIds.has(user.id));
   }
 
   function childById(id) {
-    return state.children.find((child) => child.id === id);
+    if (!currentMembership()) return undefined;
+    return state.children.find((child) => child.id === id && child.familyId === state.activeFamilyId);
   }
 
   function userById(id) {
@@ -103,6 +114,10 @@
 
   function isAdmin() {
     return ["OWNER", "ADMIN"].includes(currentMembership()?.role);
+  }
+
+  function isSystemAdmin() {
+    return currentUser().systemAdmin === true;
   }
 
   function ageAt(birthday, date = today) {
@@ -130,12 +145,36 @@
     toastTimer = setTimeout(() => toast.classList.remove("show"), 1800);
   }
 
+  function openActionDialog(options, onSubmit) {
+    const dialog = document.querySelector("#action-dialog");
+    document.querySelector("#action-title").textContent = options.title;
+    document.querySelector("#action-intro").textContent = options.intro || "";
+    document.querySelector("#action-label").textContent = options.label;
+    const input = document.querySelector("#action-input");
+    input.placeholder = options.placeholder || "";
+    input.value = options.value || "";
+    document.querySelector("#action-confirm").textContent = options.confirmText || "确认";
+    actionSubmit = onSubmit;
+    dialog.showModal();
+  }
+
   function renderContext(step = state.activeFamilyId ? "CHILD" : "FAMILY") {
     const gate = document.querySelector("#context-gate");
     gate.hidden = Boolean(state.activeFamilyId && state.activeChildId);
     document.querySelector("#family-step").hidden = step !== "FAMILY";
     document.querySelector("#child-step").hidden = step !== "CHILD";
-    document.querySelector("#gate-family-list").innerHTML = state.families.map((family) => `<button type="button" class="gate-family-card" data-family="${family.id}"><span class="family-symbol" style="background:${family.color}">${escapeHtml(family.name.slice(0, 1))}</span><span><strong>${escapeHtml(family.name)}</strong><small>进入后再选择宝宝</small></span><b>›</b></button>`).join("");
+    document.querySelector("#gate-account-list").innerHTML = state.users.map((user) => `<button type="button" class="${user.id === state.activeUserId ? "active" : ""}" data-gate-user="${user.id}">${escapeHtml(user.avatar)} · ${escapeHtml(user.name)}</button>`).join("");
+    document.querySelector("#open-system-admin").hidden = !isSystemAdmin();
+    document.querySelectorAll("[data-gate-user]").forEach((button) => button.addEventListener("click", () => {
+      state.activeUserId = button.dataset.gateUser;
+      state.activeFamilyId = "";
+      state.activeChildId = "";
+      save();
+      renderContext("FAMILY");
+      showToast(`已切换为${currentUser().name}`);
+    }));
+    const accessibleFamilyIds = new Set(state.memberships.filter((item) => item.userId === state.activeUserId).map((item) => item.familyId));
+    document.querySelector("#gate-family-list").innerHTML = state.families.filter((family) => accessibleFamilyIds.has(family.id)).map((family) => `<button type="button" class="gate-family-card" data-family="${family.id}"><span class="family-symbol" style="background:${family.color}">${escapeHtml(family.name.slice(0, 1))}</span><span><strong>${escapeHtml(family.name)}</strong><small>进入后再选择宝宝</small></span><b>›</b></button>`).join("");
     document.querySelectorAll("[data-family]").forEach((button) => button.addEventListener("click", () => {
       state.activeFamilyId = button.dataset.family;
       state.activeChildId = "";
@@ -144,7 +183,10 @@
     }));
     const family = currentFamily();
     document.querySelector("#gate-family-name").textContent = family?.name || "这个家庭";
-    document.querySelector("#gate-child-grid").innerHTML = currentChildren().map((child) => `<button type="button" class="gate-child-card" data-gate-child="${child.id}"><span class="baby-symbol" style="background:${child.color}">${escapeHtml(child.name.slice(0, 1))}</span><strong>${escapeHtml(child.name)}</strong><small>${escapeHtml(child.label)} · ${ageAt(child.birthday)}</small><em>进入成长墙</em></button>`).join("");
+    const familyChildren = currentChildren();
+    document.querySelector("#gate-child-grid").innerHTML = familyChildren.length
+      ? familyChildren.map((child) => `<button type="button" class="gate-child-card" data-gate-child="${child.id}"><span class="baby-symbol" style="background:${child.color}">${escapeHtml(child.name.slice(0, 1))}</span><strong>${escapeHtml(child.name)}</strong><small>${escapeHtml(child.label)} · ${ageAt(child.birthday)}</small><em>进入成长墙</em></button>`).join("")
+      : `<button type="button" class="gate-empty-child" id="create-first-child">🌱<strong>这个家庭还没有宝宝档案</strong><small>创建第一个宝宝档案</small></button>`;
     document.querySelectorAll("[data-gate-child]").forEach((button) => button.addEventListener("click", () => {
       state.activeChildId = button.dataset.gateChild;
       save();
@@ -152,10 +194,11 @@
       renderAll();
       navigate("wall");
     }));
+    document.querySelector("#create-first-child")?.addEventListener("click", createChildInActiveFamily);
   }
 
   function navigate(target) {
-    if (!state.activeFamilyId || !state.activeChildId) {
+    if (!currentMembership() || !state.activeChildId) {
       renderContext(state.activeFamilyId ? "CHILD" : "FAMILY");
       return;
     }
@@ -174,6 +217,10 @@
   }
 
   function renderWall() {
+    if (!currentMembership()) {
+      document.querySelector("#timeline").innerHTML = `<div class="prototype-warning">你不是该家庭成员，无法查看宝宝照片和记录。</div>`;
+      return;
+    }
     const family = currentFamily();
     const activeChild = childById(state.activeChildId);
     document.querySelector("#wall-family-name").textContent = family?.name || "成长日记";
@@ -198,6 +245,7 @@
   }
 
   function openEntry(id) {
+    if (!currentMembership()) return showToast("你不是该家庭成员，无法查看宝宝照片");
     const record = state.records.find((item) => item.id === id);
     if (!record) return;
     const child = childById(record.childId);
@@ -272,11 +320,134 @@
     }));
     document.querySelector("#profile-children").innerHTML = currentChildren().map((child) => `<button type="button" class="child-row"><span class="child-avatar" style="background:${child.color}">${child.name.slice(0, 1)}</span><div><strong>${escapeHtml(child.name)} · ${escapeHtml(child.label)}</strong><small>${ageAt(child.birthday)} · ${child.birthday}出生</small></div><b>›</b></button>`).join("");
     document.querySelector("#member-list").innerHTML = currentFamilyUsers().map((item) => {
-      const role = state.memberships.find((member) => member.familyId === state.activeFamilyId && member.userId === item.id)?.role;
-      return `<div class="member-row"><span>${item.avatar}</span><strong>${escapeHtml(item.name)}</strong><span class="role-pill ${role !== "MEMBER" ? "admin" : ""}">${roleLabel(role)}</span></div>`;
+      const member = state.memberships.find((candidate) => candidate.familyId === state.activeFamilyId && candidate.userId === item.id);
+      const role = member?.role;
+      const canManage = item.id !== user.id && role !== "OWNER" && (membership?.role === "OWNER" || (membership?.role === "ADMIN" && role === "MEMBER"));
+      return `<div class="member-row"><span>${item.avatar}</span><strong>${escapeHtml(item.name)}</strong><span class="role-pill ${role !== "MEMBER" ? "admin" : ""}">${roleLabel(role)}</span>${canManage ? `<button type="button" class="member-manage" data-member="${item.id}">管理 ›</button>` : ""}</div>`;
     }).join("");
+    document.querySelectorAll("[data-member]").forEach((button) => button.addEventListener("click", () => manageMember(button.dataset.member)));
+    const latestInvite = state.invites.find((invite) => invite.familyId === state.activeFamilyId && !invite.usedAt && new Date(invite.expiresAt).getTime() > Date.now());
+    const inviteCard = document.querySelector("#invite-card");
+    inviteCard.hidden = !latestInvite;
+    if (latestInvite) inviteCard.innerHTML = `<small>一次性家庭邀请码</small><strong>${escapeHtml(latestInvite.code)}</strong><small>有效至 ${new Date(latestInvite.expiresAt).toLocaleString("zh-CN")}</small>`;
     const adminOnlyButtons = [document.querySelector("#add-child"), document.querySelector("#create-invite")];
     adminOnlyButtons.forEach((button) => { button.hidden = !isAdmin(); });
+  }
+
+  function createChildInActiveFamily() {
+    if (!currentMembership() || !isAdmin()) return showToast("只有管理员可以创建宝宝档案");
+    openActionDialog({ title: "创建宝宝档案", label: "宝宝昵称", placeholder: "请输入1至12个字", confirmText: "创建" }, (name) => {
+      if (name.length > 12) return showToast("请输入1至12个字的宝宝昵称");
+      const child = {
+        id: `child-${Date.now()}`,
+        familyId: state.activeFamilyId,
+        name,
+        label: "宝宝",
+        birthday: today,
+        color: "#F0A58A",
+      };
+      state.children.push(child);
+      save();
+      renderContext("CHILD");
+      showToast("宝宝档案已创建，可稍后完善生日");
+    });
+  }
+
+  function manageMember(userId) {
+    const actor = currentMembership();
+    const target = state.memberships.find((item) => item.familyId === state.activeFamilyId && item.userId === userId);
+    if (!actor || !target || target.role === "OWNER" || target.userId === state.activeUserId) return;
+    if (actor.role === "ADMIN" && target.role !== "MEMBER") return showToast("管理员只能移除普通成员");
+    if (actor.role === "MEMBER") return showToast("没有成员管理权限");
+
+    openActionDialog({
+      title: `管理${userById(userId)?.name || "成员"}`,
+      intro: actor.role === "OWNER" ? "可输入 ADMIN、MEMBER 或 REMOVE；输入 REMOVE 即确认移除。" : "输入 REMOVE 即确认移除，移除后不能再查看家庭照片。",
+      label: "成员操作",
+      placeholder: actor.role === "OWNER" ? "ADMIN / MEMBER / REMOVE" : "REMOVE",
+      value: actor.role === "OWNER" ? target.role : "",
+      confirmText: "执行",
+    }, (value) => {
+      const action = value.toUpperCase();
+      if (["ADMIN", "MEMBER"].includes(action) && actor.role === "OWNER") {
+        target.role = action;
+        save();
+        renderProfile();
+        showToast("成员角色已更新");
+        return;
+      }
+      if (action === "REMOVE") {
+        state.memberships = state.memberships.filter((item) => item !== target);
+        save();
+        renderProfile();
+        showToast("成员已移除");
+        return;
+      }
+      showToast("未执行：请输入有效操作");
+    });
+  }
+
+  function renderSystemAdmin() {
+    if (!isSystemAdmin()) return showToast("只有系统管理员可以访问此功能");
+    const stats = [
+      [state.families.length, "家庭"],
+      [state.users.length, "用户"],
+      [state.children.length, "宝宝"],
+      [state.records.length, "记录"],
+      [state.records.filter((record) => record.media).length, "素材"],
+    ];
+    document.querySelector("#system-stats").innerHTML = stats.map(([value, label]) => `<div><strong>${value}</strong><small>${label}</small></div>`).join("");
+    document.querySelector("#system-family-list").innerHTML = state.families.map((family) => {
+      const members = state.memberships.filter((item) => item.familyId === family.id);
+      const owner = userById(members.find((item) => item.role === "OWNER")?.userId);
+      const childCount = state.children.filter((item) => item.familyId === family.id).length;
+      const recordCount = state.records.filter((item) => item.familyId === family.id).length;
+      const memberRows = members.map((member) => {
+        const user = userById(member.userId);
+        return `<div class="system-member-row"><span>${escapeHtml(user?.avatar || "用")}</span><strong>${escapeHtml(user?.name || "未知用户")}</strong><small>${roleLabel(member.role)}</small>${member.role !== "OWNER" ? `<button type="button" data-system-family="${family.id}" data-system-user="${member.userId}">管理 ›</button>` : ""}</div>`;
+      }).join("");
+      return `<article class="system-family-card"><header><div><strong>${escapeHtml(family.name)}</strong><small>创建者 ${escapeHtml(owner?.name || "未知")} · ${childCount}位宝宝 · ${recordCount}条记录</small></div><em>${members.length}人</em></header>${memberRows}</article>`;
+    }).join("");
+    document.querySelectorAll("[data-system-user]").forEach((button) => button.addEventListener("click", () => manageSystemMember(button.dataset.systemFamily, button.dataset.systemUser)));
+    document.querySelector("#system-user-list").innerHTML = state.users.map((user) => {
+      const familyCount = state.memberships.filter((item) => item.userId === user.id).length;
+      const entryCount = state.records.filter((item) => item.creatorId === user.id).length;
+      return `<div class="system-user-row"><span>${escapeHtml(user.avatar)}</span><div><strong>${escapeHtml(user.name)}${user.systemAdmin ? `<em>系统管理员</em>` : ""}</strong><small>加入 ${familyCount} 个家庭 · 发布 ${entryCount} 条记录</small></div></div>`;
+    }).join("");
+  }
+
+  function manageSystemMember(familyId, userId) {
+    if (!isSystemAdmin()) return showToast("只有系统管理员可以管理全局成员");
+    const member = state.memberships.find((item) => item.familyId === familyId && item.userId === userId);
+    if (!member || member.role === "OWNER") return showToast("不能管理家庭创建者");
+    document.querySelector("#system-admin-dialog").close();
+    openActionDialog({
+      title: `系统管理 · ${userById(userId)?.name || "成员"}`,
+      intro: "输入 ADMIN、MEMBER 或 REMOVE；输入 REMOVE 即确认从该家庭移除。",
+      label: "成员操作",
+      placeholder: "ADMIN / MEMBER / REMOVE",
+      value: member.role,
+      confirmText: "执行",
+    }, (value) => {
+      const action = value.toUpperCase();
+      if (["ADMIN", "MEMBER"].includes(action)) {
+        member.role = action;
+        save();
+        renderSystemAdmin();
+        document.querySelector("#system-admin-dialog").showModal();
+        showToast("全局成员角色已更新");
+        return;
+      }
+      if (action === "REMOVE") {
+        state.memberships = state.memberships.filter((item) => item !== member);
+        save();
+        renderSystemAdmin();
+        document.querySelector("#system-admin-dialog").showModal();
+        showToast("成员已从家庭移除");
+        return;
+      }
+      showToast("未执行：请输入有效操作");
+    });
   }
 
   function renderExports() {
@@ -300,6 +471,11 @@
   }
 
   function renderAll() {
+    if (state.activeFamilyId && !currentMembership()) {
+      state.activeFamilyId = "";
+      state.activeChildId = "";
+      save();
+    }
     renderPublishOptions();
     renderWall();
     renderGrowth();
@@ -310,6 +486,15 @@
   document.querySelectorAll(".tab-bar button, [data-jump]").forEach((button) => button.addEventListener("click", () => navigate(button.dataset.target || button.dataset.jump)));
   document.querySelectorAll("[data-close]").forEach((button) => button.addEventListener("click", () => document.querySelector(`#${button.dataset.close}`).close()));
   document.querySelectorAll(".app-dialog").forEach((dialog) => dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); }));
+  document.querySelector("#action-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const value = document.querySelector("#action-input").value.trim();
+    if (!value) return;
+    const handler = actionSubmit;
+    actionSubmit = undefined;
+    document.querySelector("#action-dialog").close();
+    handler?.(value);
+  });
 
   document.querySelectorAll("#entry-kind button").forEach((button) => button.addEventListener("click", () => {
     entryKind = button.dataset.kind;
@@ -340,6 +525,7 @@
 
   document.querySelector("#publish-form").addEventListener("submit", (event) => {
     event.preventDefault();
+    if (!currentMembership()) return showToast("你不是该家庭成员，无法发布记录");
     const title = document.querySelector("#publish-title").value.trim();
     const body = document.querySelector("#publish-body").value.trim();
     const date = document.querySelector("#publish-date").value;
@@ -374,7 +560,17 @@
 
   document.querySelector("#create-invite").addEventListener("click", () => {
     if (!isAdmin()) return showToast("只有管理员可以创建邀请");
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    let code;
+    do code = String(Math.floor(100000 + Math.random() * 900000));
+    while (state.invites.some((invite) => invite.code === code && !invite.usedAt));
+    state.invites.unshift({
+      id: `invite-${Date.now()}`,
+      familyId: state.activeFamilyId,
+      creatorId: state.activeUserId,
+      code,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    });
+    save();
     const card = document.querySelector("#invite-card");
     card.hidden = false;
     card.innerHTML = `<small>一次性家庭邀请码</small><strong>${code}</strong><small>演示邀请码，24小时后失效</small>`;
@@ -394,7 +590,38 @@
     save();
     renderContext("FAMILY");
   });
-  document.querySelector("#create-family").addEventListener("click", () => showToast("创建家庭将在后续版本开放"));
+  document.querySelector("#create-family").addEventListener("click", () => {
+    openActionDialog({ title: "创建家庭", label: "家庭名称", placeholder: "请输入2至20个字", confirmText: "创建" }, (name) => {
+      if (name.length < 2 || name.length > 20) return showToast("家庭名称请输入2至20个字");
+      const family = { id: `family-${Date.now()}`, name, color: "#D28FA2" };
+      state.families.push(family);
+      state.memberships.push({ familyId: family.id, userId: state.activeUserId, role: "OWNER" });
+      state.activeFamilyId = family.id;
+      state.activeChildId = "";
+      save();
+      renderContext("CHILD");
+      showToast("家庭已创建");
+    });
+  });
+  document.querySelector("#open-system-admin").addEventListener("click", () => {
+    if (!isSystemAdmin()) return showToast("只有系统管理员可以访问此功能");
+    renderSystemAdmin();
+    document.querySelector("#system-admin-dialog").showModal();
+  });
+  document.querySelector("#join-family").addEventListener("click", () => {
+    openActionDialog({ title: "加入家庭", label: "一次性邀请码", placeholder: "请输入6位邀请码", confirmText: "加入" }, (code) => {
+      const invite = state.invites.find((item) => item.code === code && !item.usedAt && new Date(item.expiresAt).getTime() > Date.now());
+      if (!invite) return showToast("邀请码无效、已使用或已过期");
+      if (state.memberships.some((item) => item.familyId === invite.familyId && item.userId === state.activeUserId)) return showToast("你已经是该家庭成员");
+      state.memberships.push({ familyId: invite.familyId, userId: state.activeUserId, role: "MEMBER" });
+      invite.usedAt = new Date().toISOString();
+      state.activeFamilyId = invite.familyId;
+      state.activeChildId = "";
+      save();
+      renderContext("CHILD");
+      showToast("已加入家庭");
+    });
+  });
   document.querySelector("#publish-child").addEventListener("change", (event) => {
     state.activeChildId = event.target.value;
     save();
@@ -414,13 +641,20 @@
     showToast("已生成演示导出任务");
   });
   document.querySelector("#reset-demo").addEventListener("click", () => {
-    if (window.confirm("重置全部 HTML 原型数据？")) {
+    openActionDialog({
+      title: "重置演示数据",
+      intro: "此操作会清除你新增的家庭、成员、宝宝和记录。请输入 RESET 确认。",
+      label: "确认文字",
+      placeholder: "RESET",
+      confirmText: "确认重置",
+    }, (value) => {
+      if (value.toUpperCase() !== "RESET") return showToast("未重置：请输入 RESET");
       state = seed();
       save();
       renderAll();
       renderContext("FAMILY");
       showToast("演示数据已重置");
-    }
+    });
   });
 
   document.querySelector("#publish-date").value = today;

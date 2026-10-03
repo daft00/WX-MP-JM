@@ -9,6 +9,7 @@ export interface User {
   id: Id;
   nickname: string;
   avatarText: string;
+  systemRole?: "SYSTEM_ADMIN";
 }
 
 export interface Family {
@@ -152,4 +153,29 @@ export interface PrototypeState {
 export interface FamilySelection {
   familyId: Id;
   childId: Id;
+}
+
+export interface SystemFamilyOverview {
+  family: Family;
+  ownerName: string;
+  members: FamilyMember[];
+  childCount: number;
+  entryCount: number;
+  assetCount: number;
+}
+
+export interface SystemUserOverview {
+  user: User;
+  familyCount: number;
+  entryCount: number;
+}
+
+export interface SystemAdminDashboard {
+  familyCount: number;
+  userCount: number;
+  childCount: number;
+  entryCount: number;
+  assetCount: number;
+  families: SystemFamilyOverview[];
+  users: SystemUserOverview[];
 }

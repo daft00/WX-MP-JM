@@ -51,7 +51,19 @@ button { color: inherit; }
 .gate-brand div { display: flex; flex-direction: column; gap: 1px; }
 .gate-brand strong { font-size: 14px; }
 .gate-brand small { color: #9e8c80; font-size: 8px; letter-spacing: .16em; }
-.gate-step { padding-top: 58px; }
+.gate-step { padding-top: 34px; }
+.gate-account-switch { margin-bottom: 26px; padding: 12px; border: 1px solid rgba(226,205,192,.88); border-radius: 14px; background: rgba(255,255,255,.7); }
+.gate-account-switch > small { display: block; margin-bottom: 9px; color: var(--muted); font-size: 9px; }
+.gate-account-switch > div { display: flex; gap: 7px; }
+.gate-account-switch button { flex: 1; padding: 7px 4px; border: 0; border-radius: 999px; background: #f4eee9; color: #887970; font-size: 9px; cursor: pointer; }
+.gate-account-switch button.active { background: #f5d6c9; color: #a75d47; font-weight: 800; }
+.gate-system-admin { display: flex; align-items: center; width: 100%; margin: -12px 0 24px; padding: 12px; border: 0; border-radius: 15px; background: #443a34; box-shadow: 0 7px 18px rgba(68,58,52,.2); color: #fffaf4; text-align: left; cursor: pointer; }
+.gate-system-admin[hidden] { display: none; }
+.gate-system-admin > span:first-child { display: grid; place-items: center; width: 36px; height: 36px; margin-right: 9px; border-radius: 10px; background: var(--coral); font-size: 12px; font-weight: 800; }
+.gate-system-admin > span:nth-child(2) { display: flex; flex: 1; flex-direction: column; gap: 2px; }
+.gate-system-admin strong { font-size: 11px; }
+.gate-system-admin small { color: #d8cdc6; font-size: 8px; }
+.gate-system-admin b { font-size: 19px; font-weight: 400; }
 .gate-step h2 { margin: 0; font-family: Georgia, "Songti SC", serif; font-size: 31px; line-height: 1.4; letter-spacing: -.03em; }
 .gate-step h2 em, .gate-step h2 span { color: #c96f54; font-style: normal; }
 .gate-step > p:not(.eyebrow) { margin: 13px 0 26px; color: var(--muted); font-size: 12px; line-height: 1.65; }
@@ -63,6 +75,7 @@ button { color: inherit; }
 .gate-family-card small { color: var(--muted); font-size: 9px; }
 .gate-family-card b { color: #b8a79d; font-size: 22px; font-weight: 400; }
 .gate-outline { width: 100%; margin-top: 13px; padding: 13px; border: 1px dashed #dcae9a; border-radius: 16px; background: rgba(255,250,246,.76); color: #ae6650; font-size: 11px; font-weight: 700; cursor: pointer; }
+.gate-join { width: 100%; margin-top: 8px; padding: 13px; border: 0; border-radius: 16px; background: #443a34; color: #fffaf4; font-size: 11px; font-weight: 700; cursor: pointer; }
 .gate-back { margin: -28px 0 30px; padding: 0; border: 0; background: transparent; color: #9e6755; font-size: 11px; cursor: pointer; }
 .gate-child-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 11px; }
 .gate-child-card { display: flex; align-items: center; flex-direction: column; padding: 17px 8px 14px; border: 1px solid rgba(226,205,192,.88); border-radius: 18px; background: rgba(255,255,255,.92); box-shadow: 0 8px 22px rgba(92,64,47,.06); cursor: pointer; }
@@ -70,6 +83,9 @@ button { color: inherit; }
 .gate-child-card strong { font-size: 13px; }
 .gate-child-card small { margin-top: 3px; color: var(--muted); font-size: 9px; }
 .gate-child-card em { margin-top: 11px; padding: 5px 9px; border-radius: 999px; background: var(--coral-soft); color: var(--coral-deep); font-size: 8px; font-style: normal; font-weight: 700; }
+.gate-empty-child { display: flex; align-items: center; grid-column: 1 / -1; flex-direction: column; gap: 8px; padding: 28px 12px; border: 1px dashed #dcae9a; border-radius: 18px; background: rgba(255,255,255,.72); color: #8a766b; cursor: pointer; }
+.gate-empty-child strong { font-size: 12px; }
+.gate-empty-child small { color: var(--coral-deep); font-size: 9px; font-weight: 700; }
 .gate-footnote { position: absolute; right: 0; bottom: 18px; left: 0; color: #aa9b91; font-size: 9px; text-align: center; }
 .screen { display: none; width: 100%; height: 100%; overflow-y: auto; background: var(--cream); scrollbar-width: none; }
 .screen::-webkit-scrollbar { display: none; }
@@ -197,6 +213,7 @@ legend { margin-bottom: 8px; color: #73675f; font-size: 11px; font-weight: 700; 
 .member-row strong { flex: 1; font-size: 11px; }
 .role-pill { padding: 4px 7px; border-radius: 999px; background: #f2efeb; color: #7f746c; font-size: 8px; }
 .role-pill.admin { background: var(--coral-soft); color: var(--coral-deep); }
+.member-manage { margin-left: 6px; padding: 4px 0 4px 6px; border: 0; background: transparent; color: var(--coral-deep); font-size: 8px; font-weight: 750; cursor: pointer; }
 .invite-card { margin-top: 9px; padding: 13px; border: 1px dashed #e4ae98; border-radius: 13px; background: #fff8f4; text-align: center; }
 .invite-card strong { display: block; margin: 5px; color: var(--coral-deep); font-size: 26px; letter-spacing: .2em; }
 .invite-card small { color: var(--muted); font-size: 9px; }
@@ -239,6 +256,33 @@ legend { margin-bottom: 8px; color: #73675f; font-size: 11px; font-weight: 700; 
 .export-job .status { padding: 4px 7px; border-radius: 999px; background: var(--green-soft); color: #5e7c65; font-size: 8px; }
 .export-job p { margin: 7px 0; color: var(--muted); font-size: 10px; }
 .export-job button { width: 100%; padding: 7px; border: 1px solid #e5c1b2; border-radius: 999px; background: #fff; color: var(--coral-deep); font-size: 9px; font-weight: 700; cursor: pointer; }
+.system-admin-dialog { width: min(430px, calc(100vw - 20px)); }
+.system-admin-dialog h2 { margin: 8px 0 8px; font-family: Georgia, serif; font-size: 27px; }
+.system-admin-dialog h3 { margin: 22px 0 9px; font-size: 13px; }
+.system-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 16px 0; }
+.system-stats div { display: flex; align-items: center; flex-direction: column; padding: 10px 2px; border-radius: 11px; background: #fff5f0; }
+.system-stats strong { color: var(--coral-deep); font-size: 18px; }
+.system-stats small { margin-top: 2px; color: var(--muted); font-size: 7px; }
+.system-family-list { display: flex; flex-direction: column; gap: 9px; }
+.system-family-card { overflow: hidden; border: 1px solid var(--line); border-radius: 14px; }
+.system-family-card header { display: flex; align-items: flex-start; padding: 11px; border-bottom: 1px solid #f0e7e0; background: #fffaf7; }
+.system-family-card header div { display: flex; flex: 1; flex-direction: column; gap: 3px; }
+.system-family-card header strong { font-size: 12px; }
+.system-family-card header small { color: var(--muted); font-size: 8px; }
+.system-family-card header em { padding: 4px 6px; border-radius: 999px; background: var(--green-soft); color: var(--green); font-size: 7px; font-style: normal; }
+.system-member-row { display: flex; align-items: center; min-height: 42px; padding: 0 11px; border-bottom: 1px solid #f3ece6; }
+.system-member-row:last-child { border-bottom: 0; }
+.system-member-row > span, .system-user-row > span { display: grid; place-items: center; width: 25px; height: 25px; margin-right: 8px; border-radius: 50%; background: #f0dfd4; color: #9b6754; font-size: 8px; font-weight: 800; }
+.system-member-row strong { flex: 1; font-size: 9px; }
+.system-member-row small { color: var(--muted); font-size: 7px; }
+.system-member-row button { margin-left: 7px; padding: 3px 0 3px 5px; border: 0; background: transparent; color: var(--coral-deep); font-size: 7px; font-weight: 750; cursor: pointer; }
+.system-user-list { padding: 0 11px; border: 1px solid var(--line); border-radius: 14px; }
+.system-user-row { display: flex; align-items: center; min-height: 48px; border-bottom: 1px solid #f3ece6; }
+.system-user-row:last-child { border-bottom: 0; }
+.system-user-row > div { display: flex; flex: 1; flex-direction: column; gap: 2px; }
+.system-user-row strong { font-size: 9px; }
+.system-user-row strong em { margin-left: 5px; padding: 3px 5px; border-radius: 999px; background: #443a34; color: #fff; font-size: 6px; font-style: normal; }
+.system-user-row small { color: var(--muted); font-size: 7px; }
 .toast { position: fixed; bottom: 28px; left: 50%; z-index: 50; padding: 10px 16px; border-radius: 999px; background: #332d29; color: #fff; font-size: 12px; opacity: 0; pointer-events: none; transform: translate(-50%, 12px); transition: .2s; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 

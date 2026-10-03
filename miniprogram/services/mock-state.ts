@@ -4,12 +4,12 @@ const now = new Date().toISOString();
 
 export function createSeedState(): PrototypeState {
   return {
-    version: 2,
+    version: 4,
     activeUserId: "user_mom",
     activeFamilyId: "",
     activeChildId: "",
     users: [
-      { id: "user_mom", nickname: "妈妈", avatarText: "妈" },
+      { id: "user_mom", nickname: "妈妈", avatarText: "妈", systemRole: "SYSTEM_ADMIN" },
       { id: "user_dad", nickname: "爸爸", avatarText: "爸" },
       { id: "user_grandma", nickname: "外婆", avatarText: "外" },
     ],
@@ -67,14 +67,6 @@ export function createSeedState(): PrototypeState {
         role: "ADMIN",
         joinedAt: "2026-01-12T08:10:00.000Z",
         user: { id: "user_mom", nickname: "妈妈", avatarText: "妈" },
-      },
-      {
-        id: "member_dad_grandma_home",
-        familyId: "family_grandma",
-        userId: "user_dad",
-        role: "MEMBER",
-        joinedAt: "2026-01-13T08:00:00.000Z",
-        user: { id: "user_dad", nickname: "爸爸", avatarText: "爸" },
       },
     ],
     children: [

@@ -12,6 +12,9 @@ import {
   Id,
   Invite,
   Session,
+  User,
+  Role,
+  SystemAdminDashboard,
 } from "../types/models";
 
 export interface EntryQuery {
@@ -29,6 +32,7 @@ export interface LocalMediaFile {
 
 export interface AuthService {
   getSession(): Promise<Session>;
+  listPrototypeUsers(): Promise<User[]>;
   listPrototypeSessions(): Promise<Session[]>;
   switchPrototypeUser(userId: Id): Promise<Session>;
   resetPrototypeData(): Promise<void>;
@@ -42,7 +46,11 @@ export interface FamilyService {
   selectFamily(familyId: Id): Promise<Family>;
   selectChild(childId: Id): Promise<Child>;
   clearSelection(): Promise<void>;
+  createFamily(name: string): Promise<Family>;
   createInvite(): Promise<Invite>;
+  joinFamily(code: string): Promise<Family>;
+  updateMemberRole(memberId: Id, role: Extract<Role, "ADMIN" | "MEMBER">): Promise<FamilyMember>;
+  removeMember(memberId: Id): Promise<void>;
 }
 
 export interface ChildService {
@@ -72,6 +80,12 @@ export interface ExportService {
   confirmManualBackup(id: Id): Promise<ExportJob>;
 }
 
+export interface SystemAdminService {
+  getDashboard(): Promise<SystemAdminDashboard>;
+  updateMemberRole(familyId: Id, memberId: Id, role: Extract<Role, "ADMIN" | "MEMBER">): Promise<FamilyMember>;
+  removeMember(familyId: Id, memberId: Id): Promise<void>;
+}
+
 export interface ServiceContainer {
   auth: AuthService;
   family: FamilyService;
@@ -79,4 +93,5 @@ export interface ServiceContainer {
   entries: EntryService;
   uploads: UploadService;
   exports: ExportService;
+  systemAdmin: SystemAdminService;
 }
