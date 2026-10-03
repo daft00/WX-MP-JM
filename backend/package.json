@@ -1,0 +1,41 @@
+{
+  "name": "growth-diary-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "成长日记 NestJS 后端",
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "scripts": {
+    "start": "node dist/main.js",
+    "start:dev": "nest start --watch",
+    "build": "nest build",
+    "typecheck": "tsc --noEmit",
+    "test": "tsc -p tsconfig.test.json && node --test dist-test/test/foundation.test.js dist-test/test/migrations.test.js dist-test/test/auth.test.js dist-test/test/families.test.js dist-test/test/children.test.js dist-test/test/entries.test.js dist-test/test/admin.test.js",
+    "test:db": "tsc -p tsconfig.test.json && node --test dist-test/test/database.integration.test.js",
+    "migration:show": "node dist/database/migrate.js show",
+    "migration:run": "node dist/database/migrate.js run",
+    "migration:revert": "node dist/database/migrate.js revert",
+    "check": "npm run build && npm test"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/throttler": "^6.7.1",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "mysql2": "^3.14.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "typeorm": "^0.3.31"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/testing": "^11.0.0",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "typescript": "~5.9.2"
+  }
+}

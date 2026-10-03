@@ -1,0 +1,28 @@
+[Unit]
+Description=Growth Diary API
+After=network.target mysql.service
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=growth-api
+Group=growth-api
+WorkingDirectory=/opt/growth-diary/current
+EnvironmentFile=/etc/growth-diary/app.env
+ExecStart=/usr/bin/node --max-old-space-size=384 dist/main.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+RestrictSUIDSGID=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

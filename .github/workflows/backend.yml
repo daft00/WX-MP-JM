@@ -1,0 +1,50 @@
+name: Backend checks
+
+on:
+  push:
+    paths: ['backend/**', 'scripts/**', '.gitattributes', '.github/workflows/backend.yml']
+  pull_request:
+    paths: ['backend/**', 'scripts/**', '.gitattributes', '.github/workflows/backend.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci-${{ github.run_id }}-${{ github.run_attempt }}
+          MYSQL_DATABASE: growth_diary_test
+          MYSQL_USER: growth_migrator
+          MYSQL_PASSWORD: ci-${{ github.run_id }}-${{ github.run_attempt }}
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h127.0.0.1 --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - name: Deployment script checks (no deployment)
+        run: |
+          bash -n ../scripts/build-backend.sh
+          bash -n ../scripts/deploy-backend.sh
+          node --test ../scripts/deploy/release-tools.test.cjs
+          bash ../scripts/deploy/test-activation.sh
+      - run: npm run test:db
+        env:
+          TEST_MIGRATION_DATABASE_URL: mysql://growth_migrator:ci-${{ github.run_id }}-${{ github.run_attempt }}@127.0.0.1:3306/growth_diary_test

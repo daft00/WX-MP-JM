@@ -1,9 +1,45 @@
 # 成长日记项目交接文档
 
-更新时间：2026-10-01  
-项目根目录：`C:\Users\Daft Jiang\Desktop\Daft Dev\manman WX program`
+更新时间：2026-10-03
+项目根目录：`C:\Users\Daft Jiang\Desktop\WX MP JM\manman WX program`
 
-> 本文档用于让新的 Codex 对话直接接手。当前仓库仍处于纯前端原型阶段；不要把 Mock 权限、本地 Storage 或本地媒体路径当作生产安全边界。本文不包含密码、Token、SecretKey、AppSecret 等敏感信息。
+> 本文档用于让新的 Codex 对话直接接手。小程序仍使用 Mock 服务，后端已开始独立开发；不要把 Mock 权限、本地 Storage 或本地媒体路径当作生产安全边界。本文不包含密码、Token、SecretKey、AppSecret 等敏感信息。
+
+## 最新进度（优先于下方历史记录）
+
+- Git 已连接 `git@github.com:daft00/WX-MP-JM.git`，使用 `main` 分支；此前前端、交接文档和服务器脚本均已提交并推送。开始模块 1 前工作区干净，后续以实际 `git status` 为准。
+- 用户已购买并完成个人域名实名；已购买成都腾讯云轻量服务器，Ubuntu 26.04，2 核/2GB/40GB。根据会话记录已安装 Node.js 22、MySQL 8.4，创建 `growth_diary` 数据库及分离的运行/迁移账号。后续部署由用户执行，本轮不操作服务器。
+- 新增独立 `backend/` 工程（NestJS 11 + TypeScript），环境变量兼容现有脚本的 `MYSQL_URL`，默认监听 `127.0.0.1:3000`。
+- 模块 1：配置启动校验、全局 DTO 校验、统一 HTTP 错误、`GET /api/v1/health/live` 与 `/api/v1/health/ready`。数据库健康检查只执行 `SELECT 1`，不建表、不迁移。
+- 后端命令：`npm ci`、`npm run start:dev`、`npm run build`、`npm start`、`npm test`、`npm run check`，均在 `backend/` 中运行。详细配置与验证边界见 `backend/README.md`。
+- 模块 1 验证：后端构建通过；自动化测试 7 项通过、1 项真实 MySQL 检查因未设置 `TEST_MYSQL_URL` 跳过；前端 `npm run check` 通过。未连接云服务器或执行部署，也未声称已验证真实数据库连通性。
+- 模块 2：新增 TypeORM 0.3 初始迁移（11 张业务表）、`migration:show/run/revert`、独立 `.env.migration` 和 `MIGRATION_DATABASE_URL`。应用启动不迁移，禁止自动同步；支持并发迁移锁、部分建表检测、非空库回滚拒绝。具体表结构、部署命令和 MySQL DDL 隐式提交风险见 `backend/docs/database.md`。
+- 模块 2 的真实 SQL 验收命令为 `npm run test:db`，必须指定 `TEST_MIGRATION_DATABASE_URL` 指向专用空的 `growth_diary_test` 库；已提供 MySQL 8.4 GitHub Actions 工作流。本机未安装 MySQL/Docker，本轮未运行真实库验收或云服务器迁移，不能将本地单元测试当作数据库验收。
+- 模块 2 本地验证：后端 `npm run check` 通过（13 项通过、1 项模块 1 真实连接检查跳过）；前端检查通过。CI 配置已添加但尚未推送运行。模块 1–2 文件目前保留在工作区，未自动提交。
+- 模块 3：新增微信 code 登录、`/auth/me`、退出登录、默认启用的全局鉴权守卫和登录限流。使用数据库中可吊销的随机 Bearer 会话，仅保存令牌 SHA-256 摘要；未采用 JWT。用户身份由微信服务端确认，不接受客户端 OpenID、用户 ID 或系统角色。
+- 新增 `AuthSessions1790985601000` 迁移（第 12 张表 `auth_sessions`），原初始迁移未改写。新增 `User` / `AuthSession` ORM 实体，运行账号延迟连接、最多 5 个连接，每个事务设置 UTC；应用仍不执行迁移。
+- 开发登录默认关闭，开启需 `ENABLE_DEV_LOGIN=true` 及随机 64 位 hex 的 `DEV_LOGIN_KEY`，仅提供 developer/member/outsider 三个普通身份。生产环境禁止开启；旧 DEV 会话在生产或开关关闭后同样无效。微信凭据在生产必填，不能写进前端或 Git。
+- 模块 3 的配置、接口、联调和验证边界见 `backend/docs/auth.md`。本轮未配置真实 AppSecret、未连接 MySQL、未部署服务器；前端仍使用 Mock。新增集成测试已覆盖并发首次登录去重、会话过期/吊销与两项迁移逆序回滚，但真实库验收需在测试库或 CI 运行。
+- 模块 3 本地验证：后端构建及测试通过（24 项通过、1 项真实数据库健康检查跳过），前端 `npm run check` 通过。已核对微信官方新版 code2Session 文档，但未执行真实登录。模块 1–3 修改仍未自动提交。
+- 模块 4：已实现家庭创建/列表/详情、成员列表、一次性邀请码创建/加入、OWNER 调整 ADMIN/MEMBER 角色及按角色移除成员。复用现有表，无新增迁移或依赖；认证和家庭模块通过 `DatabaseModule` 共用连接池。
+- 新增 `INVITE_CODE_SECRET`（随机独立 64 位 hex，生产必填），邀请码为 16 位 hex、有效 24 小时，只存 HMAC 摘要。采用家庭行锁和条件更新，邀请消费与入会同事务；降级/移除管理员会作废其未使用邀请。管理操作审计与业务操作同事务，失败回滚。
+- 非成员访问家庭统一 404，成员 ID 限定在路径家庭内，SYSTEM_ADMIN 不绕过检查；没有家庭删除、OWNER 转让或自助退出接口。前端继续使用 Mock。详见 `backend/docs/families.md`，真实 MySQL 并发及事务测试已补充至 `test:db`，本轮未执行云服务器部署。
+- 模块 4 验证：后端构建和测试通过（31 项通过、1 项真实数据库健康检查跳过），前端检查通过。真实 MySQL 并发/事务用例已编译但未执行；本机没有可用 MySQL。模块 1–4 现有修改全部保留，未自动提交。
+- 模块 5：已新增家庭范围内的宝宝列表、详情、创建和完整表单更新接口。家庭成员可读，OWNER/ADMIN 可写；复用模块 4 的同事务家庭行锁、成员检查和审计，不允许 SYSTEM_ADMIN 绕过家庭权限，不允许更改归属/创建者。无新增表、迁移、依赖或配置。
+- 宝宝昵称 1–12 字符、称呼最多 8 字符、颜色为六位 hex；生日为真实 DATE 字符串且不能晚于上海时区今天。PUT 必须提供名称和生日，省略称呼/颜色会恢复默认值。无删除宝宝接口。接口及联调命令见 `backend/docs/children.md`。
+- 模块 5 验证：后端构建及测试通过（36 项通过、1 项真实数据库健康检查跳过），前端检查通过；实际 MySQL 用例已扩展并编译，未运行真实库验收。前端仍使用 Mock，未操作云服务器，模块 1–5 修改均未自动提交。
+- 模块 6：实现成长墙分页、记录详情/创建/完整更新/永久删除，以及按宝宝和类型分页的 HEIGHT/WEIGHT/HEAD 指标查询。成员可发布和编辑自己的记录，OWNER/ADMIN 可编辑任意记录及删除；SYSTEM_ADMIN 不绕过家庭身份。复用已有表与家庭事务锁，无新增迁移/配置/依赖。
+- 日期输入输出均为 YYYY-MM-DD，现有 DATETIME 存 UTC 零点；不能晚于上海今天。指标最多三位小数、单位服务端生成，随记录同事务替换/清除。编辑保留原创建者和创建时间，允许在同家庭调整宝宝；素材必须匹配目标宝宝、READY、未被其他记录占用，新关联须为当前操作者上传。
+- 删除记录级联删除指标及素材关联，并将原素材标为 DELETING；未执行 COS 物理删除。编辑解绑的素材保留，后续媒体模块需实现孤立素材清理、DELETING 清理及拒绝非 READY 访问。审计与业务同事务。文档和联调命令见 `backend/docs/entries.md`。
+- 模块 6 后端构建和自动化测试通过（43 项通过、1 项真实数据库健康检查跳过），前端检查通过，git diff --check 通过。真实 MySQL 回滚/分页/关联测试已新增并通过类型检查，待测试库或 CI 执行；小程序仍用 Mock，未部署、未自动提交，既有修改保留。
+- 模块 7：实现 `/admin/dashboard` 数量统计、家庭/用户/成员分页、非 OWNER 成员角色调整/移除及 `/admin/audit-logs` 筛选分页。每个业务事务读取并共享锁定当前 SYSTEM_ADMIN 角色，普通家庭 OWNER/ADMIN 无系统权限。禁止通过系统接口调整自身家庭成员身份；不提供系统角色授予或审计修改/删除 API。
+- 管理列表只提供数量、家庭概要和公开用户字段，不返回宝宝信息、记录正文、指标、媒体对象键或微信/会话凭据。系统管理员仍须具备家庭成员身份才能调用内容接口。系统操作必填理由，原/新角色、操作者、目标和理由入审计；降级/移除作废未使用邀请，审计失败整体回滚。无新增迁移/依赖/配置，首位管理员由授权维护者人工核实配置，本轮未修改真实账号权限。
+- 模块 7 构建和自动化测试通过（49 项通过、1 项真实数据库健康检查跳过），前端检查、测试类型检查及 git diff --check 通过；真实 MySQL 统计、授权、隐私、审计回滚用例已新增并编译检查，待测试库或 CI 执行。接口及联调见 `backend/docs/admin.md`。小程序仍使用 Mock，未部署、未提交，模块 1–6 原有修改保留。
+- 模块 8：新增 `scripts/build-backend.sh`（普通用户 Linux 构建/测试/裁剪依赖）及 `scripts/deploy-backend.sh`（sudo init/import/backup/migrate/activate/rollback/verify），复用已有数据库凭据。使用 `/opt/growth-diary/releases` 和 current/previous 软链接；API 为 growth-api、迁移为 growth-migrate 系统身份。配置在 root-only `/etc/growth-diary/app.env` 和 migration.env，首次生成邀请密钥，重复初始化不覆盖。
+- 迁移前停服/禁用自启动并做 SQL 备份，失败保持停止；激活检查迁移历史/业务表、切换版本并验活，失败尝试恢复旧代码。不自动回滚数据库/配置，不删除旧版本/备份，不自动改域名、防火墙或 Nginx。默认只监听 127.0.0.1:3000，可经 SSH 隧道联调。可选 HTTPS 模板不自动启用，现有代理限流限制在部署文档中注明。
+- 模块 8 已通过本地 Bash 语法、两项配置/凭据测试及四条模拟切换/失败恢复分支，CI 增加部署脚本检查；尚未在真实 Ubuntu/systemd/MySQL/Nginx 环境执行部署。白名单源码打包上传、配置、构建、备份迁移、回退和排障步骤见 `backend/docs/deployment.md`。模块 1–7 修改保留，未提交/推送，未操作服务器或真实数据。
+- 后续由用户执行测试库验收与服务器部署，再继续媒体上传与私有访问；前端真实服务切换时需适配系统列表分页、维护理由输入与审计页面，以及成长曲线游标分页。
+- 下方内容是 2026-10-01 的历史记录；其中“未购买资源”“后端未创建”“大量未提交修改”等状态已过时。产品范围、媒体隐私边界和已有代码说明仍可参考。
 
 ## 1. 项目目标和当前需求
 

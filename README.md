@@ -1,6 +1,26 @@
 # 成长日记微信小程序原型（WX-MP-JM）
 
-这是“成长日记”的第一阶段纯前端原型，使用微信原生 TypeScript 开发。当前版本不需要腾讯云资源，不连接真实服务器，也不具备云端备份能力。
+这是“成长日记”项目，包含微信原生 TypeScript 前端原型，以及独立的 NestJS 后端基础工程。小程序当前仍使用本地 Mock 数据，不连接真实服务器，也不具备云端备份能力。
+
+## 后端工程（模块 1–8）
+
+`backend/` 已实现环境配置校验、全局参数校验、统一错误处理、进程和数据库健康检查、12 张表的 TypeORM 迁移、微信登录与会话鉴权，以及家庭、成员、一次性邀请、宝宝档案、成长记录、指标、系统管理和审计接口。使用 Node.js 22、NestJS 11 和 MySQL 8.4；媒体上传尚未实现。
+
+启动步骤、环境变量、接口及测试说明见 [后端 README](backend/README.md)。后端独立安装依赖，验证命令为 `npm --prefix backend run check`。
+
+数据库表结构、迁移与回滚步骤见 [数据库文档](backend/docs/database.md)。应用启动不自动迁移，需使用独立迁移账号显式执行。
+
+微信登录配置、受控开发登录及 API 见 [身份验证文档](backend/docs/auth.md)。当前小程序仍使用 Mock 服务，未切换真实登录。
+
+家庭权限、邀请密钥及联调步骤见 [家庭模块文档](backend/docs/families.md)。
+
+宝宝档案列表、详情、新增、编辑及权限说明见 [宝宝档案文档](backend/docs/children.md)。
+
+成长记录、身高/体重/头围指标、分页及素材关联边界见 [记录与指标文档](backend/docs/entries.md)。
+
+系统统计、成员维护、管理员授权和审计查询见 [系统管理文档](backend/docs/admin.md)。
+
+Ubuntu 首次部署、升级、数据库备份、代码回退和 SSH 隧道验收见 [部署文档](backend/docs/deployment.md)。部署脚本由操作者手动执行，不自动发布服务器。
 
 ## 已实现
 
@@ -21,7 +41,7 @@
 1. 安装依赖：`npm install`
 2. 检查 TypeScript：`npm run typecheck`
 3. 使用微信开发者工具导入项目根目录。
-4. 当前 `appid` 为 `touristappid`，可直接使用测试号/游客模式预览；准备好真实 AppID 后在微信开发者工具中替换。
+4. 检查 `project.config.json` 中已配置的 `appid` 是否属于你的小程序，并与后端 `WECHAT_APP_ID` 保持一致。
 5. 真机预览前建议清理一次缓存，确保从初始演示数据开始。
 
 ## HTML 交互原型

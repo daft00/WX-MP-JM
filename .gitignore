@@ -18,3 +18,7 @@ database.env
 app.cnf
 migration.cnf
 backups/
+
+# Backend build and test output
+backend/dist/
+backend/dist-test/
