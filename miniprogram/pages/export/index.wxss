@@ -1,4 +1,5 @@
 .export-page { padding-bottom: 70rpx; }
+.export-progress { display: flex; flex-direction: column; gap: 16rpx; margin-top: 20rpx; color: #8d6855; font-size: 24rpx; }
 .export-hero { display: flex; flex-direction: column; padding: 18rpx 6rpx 32rpx; }
 .export-kicker { margin-bottom: 10rpx; color: #738c78; font-size: 21rpx; font-weight: 700; letter-spacing: 5rpx; }
 .export-title { font-family: serif; font-size: 42rpx; font-weight: 700; line-height: 1.4; }

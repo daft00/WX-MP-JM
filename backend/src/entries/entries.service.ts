@@ -101,11 +101,14 @@ export class EntriesService {
       const id = entryId ?? randomUUID(), creator = original?.creator_id ?? userId;
       // 先校验全部素材，再修改关联；管理员可保留原素材，新素材必须由当前操作者上传。
       for (const assetId of draft.assetIds) {
-        const assets: { creator_id: string; status: string; entry_id: string | null }[] = await manager.query(`SELECT a.creator_id, a.status, ea.entry_id FROM assets a
+        const assets: { creator_id: string; status: string; kind: string; size_bytes: number | string; entry_id: string | null }[] = await manager.query(`SELECT a.creator_id, a.status, a.kind, a.size_bytes, ea.entry_id FROM assets a
           LEFT JOIN entry_assets ea ON ea.asset_id = a.id WHERE a.family_id = ? AND a.child_id = ? AND a.id = ?`, [familyId, draft.childId, assetId]);
         const asset = assets[0];
         if (!asset || asset.status !== "READY" || (asset.creator_id !== userId && asset.entry_id !== id)) throw new BadRequestException("Invalid or unavailable asset");
         if (asset.entry_id && asset.entry_id !== id) throw new ConflictException("Asset is already attached to another entry");
+        const size = Number(asset.size_bytes);
+        const limit = asset.kind === "IMAGE" ? 10 * 1024 * 1024 : asset.kind === "VIDEO" ? 50 * 1024 * 1024 : 0;
+        if (!Number.isSafeInteger(size) || size <= 0 || size > limit) throw new BadRequestException("Images must be at most 10MB and videos at most 50MB");
       }
       if (original) {
         // 复合外键要求先移除旧关联；同一事务内重建，失败时全部恢复。

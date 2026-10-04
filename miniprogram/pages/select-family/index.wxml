@@ -1,4 +1,4 @@
-<view class="select-page">
+<view class="select-page" style="padding-top: calc({{contentTop}}px + 34rpx);">
   <view class="soft-orb orb-one"></view>
   <view class="soft-orb orb-two"></view>
 
@@ -55,7 +55,7 @@
         <view class="baby-avatar" style="background: {{item.avatarColor}};">{{item.initial}}</view>
         <text class="baby-name">{{item.name}}</text>
         <text class="baby-meta">{{item.genderLabel}} · {{item.ageLabel}}</text>
-        <view class="enter-pill">进入成长墙</view>
+        <view class="enter-pill">进入记录墙</view>
       </view>
     </view>
 

@@ -30,3 +30,7 @@
 .tone-sage { background: linear-gradient(145deg, #c6d7c1, #88aa91); }
 .tone-rose { background: linear-gradient(145deg, #efd0d7, #d996a5); }
 .submit-button { margin-top: 32rpx; }
+
+.media-help { color: #82786f; font-size: 24rpx; line-height: 1.6; margin: 12rpx 0; }
+.compression-canvas { position: fixed; left: -9999px; top: -9999px; width: 1px; height: 1px; }
+.media-size { position: absolute; bottom: 4rpx; left: 4rpx; padding: 2rpx 6rpx; color: #fff; background: rgba(0, 0, 0, .55); border-radius: 6rpx; font-size: 20rpx; }

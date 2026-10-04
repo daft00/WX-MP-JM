@@ -18,7 +18,7 @@
   <view class="form-card card">
     <view class="field">
       <text class="field-label">记录给谁</text>
-      <picker mode="selector" range="{{children}}" range-key="name" value="{{childIndex}}" bindchange="changeChild">
+      <picker disabled="{{mediaBusy}}" mode="selector" range="{{children}}" range-key="name" value="{{childIndex}}" bindchange="changeChild">
         <view class="picker-box">{{children[childIndex].name || '请先创建宝宝档案'}} <text class="picker-arrow">⌄</text></view>
       </picker>
     </view>
@@ -61,11 +61,14 @@
 
     <view class="field media-field">
       <view class="field-row"><text class="field-label">照片与视频</text><text class="counter">{{assets.length}}/9</text></view>
+      <view class="media-help">图片≤10MB，视频≤50MB；超限自动压缩。需要转为JPEG时透明区域变白底，处理后可点击预览。</view>
+      <view wx:if="{{mediaBusy}}" class="media-help">{{mediaProgress || "正在选择素材"}}<button wx:if="{{processingMedia}}" size="mini" bindtap="cancelMedia">取消处理</button></view>
       <view class="selected-media">
-        <view wx:for="{{assets}}" wx:key="id" class="selected-item tone-{{item.placeholderTone}}">
+        <view wx:for="{{assets}}" wx:key="id" class="selected-item tone-{{item.placeholderTone}}" data-id="{{item.id}}" bindtap="previewAsset">
           <image wx:if="{{item.kind === 'IMAGE' && item.localPath}}" src="{{item.localPath}}" mode="aspectFill" />
           <image wx:elif="{{item.kind === 'VIDEO' && item.posterPath}}" src="{{item.posterPath}}" mode="aspectFill" />
           <view wx:else class="selected-placeholder">{{item.kind === 'VIDEO' ? '▶' : '✦'}}</view>
+          <text wx:if="{{item.sizeLabel}}" class="media-size">{{item.sizeLabel}}</text>
           <view class="remove-button" data-id="{{item.id}}" catchtap="removeAsset">×</view>
         </view>
         <view wx:if="{{assets.length < 9}}" class="add-media" bindtap="chooseMedia">
@@ -76,5 +79,7 @@
     </view>
   </view>
 
-  <button class="primary-button submit-button" loading="{{submitting}}" bindtap="submit">{{editingId ? '保存修改' : '收藏这段成长'}}</button>
+  <button class="primary-button submit-button" disabled="{{mediaBusy || submitting}}" loading="{{submitting}}" bindtap="submit">{{editingId ? '保存修改' : '收藏这段成长'}}</button>
 </view>
+
+<canvas type="2d" id="compression-canvas" class="compression-canvas" />

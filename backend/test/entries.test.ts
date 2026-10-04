@@ -85,13 +85,13 @@ test("foreign children, foreign entries and inconsistent metric drafts fail befo
 
 test("assets must be ready, scoped, owned or retained, and cannot be reused by another entry", async () => {
   for (const [assets, code] of [ [[], 400], [[{ creator_id: user, status: "PENDING", entry_id: null }], 400],
-    [[{ creator_id: randomUUID(), status: "READY", entry_id: null }], 400], [[{ creator_id: user, status: "READY", entry_id: randomUUID() }], 409] ] as const) {
+    [[{ creator_id: randomUUID(), status: "READY", kind: "IMAGE", size_bytes: 100, entry_id: null }], 400], [[{ creator_id: user, status: "READY", kind: "IMAGE", size_bytes: 100, entry_id: randomUUID() }], 409] ] as const) {
     const { service, calls } = fixture([...access(), [{ id: child }], assets]);
     await assert.rejects(service.save(user, family, { ...draft, assetIds: [asset] }), status(code));
     assert.deepEqual(calls[3].params, [family, child, asset]);
     assert.ok(calls.every((call) => call.sql.startsWith("SELECT")));
   }
-  const retained = fixture([...access("ADMIN"), [row], [{ id: child }], [{ creator_id: randomUUID(), status: "READY", entry_id: entry }], {}, {}, {}, {}, {}, [row], [], [{ entry_id: entry, asset_id: asset }]]);
+  const retained = fixture([...access("ADMIN"), [row], [{ id: child }], [{ creator_id: randomUUID(), status: "READY", kind: "IMAGE", size_bytes: 100, entry_id: entry }], {}, {}, {}, {}, {}, [row], [], [{ entry_id: entry, asset_id: asset }]]);
   assert.deepEqual((await retained.service.save(user, family, { ...draft, assetIds: [asset] }, entry)).assetIds, [asset]);
 });
 
@@ -171,4 +171,22 @@ test("HTTP entry DTOs reject invalid dates, precision, identities, arrays and un
     for (const path of ["/entries/bad", "/entries?pageSize=201", "/entries?pageSize=0", "/entries?pageSize=1.5", "/entries?pageSize[]=1", "/entries?cursor=", "/entries?unknown=1", "/metrics?type=HEIGHT", `/metrics?childId=${child}`, `/metrics?childId=${child}&type=OTHER`]) assert.equal((await request("GET", path)).status, 400, path);
     assert.equal(calls.length, count);
   } finally { await app.close(); }
+});
+
+
+test("asset byte limits include the exact boundary and reject invalid metadata before writes", async () => {
+  for (const kind of ["IMAGE", "VIDEO"]) {
+    const limit = (kind === "IMAGE" ? 10 : 50) * 1024 * 1024;
+    for (const size of [limit, String(limit), limit + 1, 0, -1, "9007199254740993", "bad"]) {
+      const accepted = Number(size) === limit;
+      const { service, calls } = fixture([...access("ADMIN"), [row], [{ id: child }],
+        [{ creator_id: user, status: "READY", kind, size_bytes: size, entry_id: entry }],
+        {}, {}, {}, {}, {}, [row], [], [{ entry_id: entry, asset_id: asset }]]);
+      if (accepted) await service.save(user, family, { ...draft, assetIds: [asset] }, entry);
+      else {
+        await assert.rejects(service.save(user, family, { ...draft, assetIds: [asset] }, entry), status(400));
+        assert.ok(calls.every((call) => call.sql.startsWith("SELECT")));
+      }
+    }
+  }
 });

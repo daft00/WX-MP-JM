@@ -1,7 +1,12 @@
 import { services } from "../../services/index";
 import { LocalMediaFile } from "../../services/contracts";
 import { Asset, Child, EntryKind, MetricType } from "../../types/models";
+import { prepareMedia } from "../../services/media-policy";
 import { today } from "../../utils/date";
+
+function withSizeLabel(asset: Asset) {
+  return { ...asset, sizeLabel: asset.sizeBytes ? `${(asset.sizeBytes / 1024 / 1024).toFixed(2)} MB` : "" };
+}
 
 Page({
   data: {
@@ -12,18 +17,23 @@ Page({
     title: "",
     body: "",
     occurredAt: today(),
-    assets: [] as Asset[],
+    assets: [] as ReturnType<typeof withSizeLabel>[],
     customEvent: "",
     metricType: "" as MetricType | "",
     metricValue: "",
+    mediaBusy: false,
+    processingMedia: false,
+    mediaProgress: "",
     submitting: false,
     titleCount: 0,
     bodyCount: 0,
   },
 
   loadedEditingId: "",
+  mediaCancelled: false,
 
   async onShow() {
+    if (this.data.mediaBusy) return;
     const editingId = (wx.getStorageSync("growth_diary_edit_entry_id") as string) || "";
     const [children, selection] = await Promise.all([
       services.children.list(),
@@ -71,7 +81,7 @@ Page({
         title: entry.title,
         body: entry.body,
         occurredAt: entry.occurredAt,
-        assets,
+        assets: assets.map(withSizeLabel),
         customEvent: entry.customEvent || "",
         metricType: entry.metric?.type || "",
         metricValue: entry.metric ? String(entry.metric.value) : "",
@@ -108,6 +118,7 @@ Page({
   },
 
   changeChild(event: WechatMiniprogram.PickerChange) {
+    if (this.data.mediaBusy) return;
     const childIndex = Number(event.detail.value);
     const child = this.data.children[childIndex];
     this.setData({ childIndex });
@@ -144,6 +155,7 @@ Page({
   },
 
   async chooseMedia() {
+    if (this.data.mediaBusy || this.data.submitting) return;
     const child = this.data.children[this.data.childIndex];
     if (!child) {
       wx.showToast({ title: "请先创建宝宝档案", icon: "none" });
@@ -154,48 +166,100 @@ Page({
       wx.showToast({ title: "每条记录最多9个素材", icon: "none" });
       return;
     }
+    this.mediaCancelled = false;
+    this.setData({ mediaBusy: true });
+    let prepared: Awaited<ReturnType<typeof prepareMedia>> | undefined;
+    let keepPaths: string[] = [];
     try {
       const result = await wx.chooseMedia({
         count: remaining,
         mediaType: ["image", "video"],
+        sizeType: ["original"],
         sourceType: ["album", "camera"],
         maxDuration: 60,
         camera: "back",
       });
-      const oversized = result.tempFiles.find((file) => {
-        const kind = file.fileType || (file.thumbTempFilePath ? "video" : "image");
-        return kind === "video" ? file.size > 500 * 1024 * 1024 : file.size > 30 * 1024 * 1024;
-      });
-      if (oversized) {
-        wx.showToast({ title: "照片限30MB，视频限500MB", icon: "none" });
-        return;
-      }
+      if (this.mediaCancelled) return;
+      this.setData({ processingMedia: true });
       const files: LocalMediaFile[] = result.tempFiles.map((file) => ({
         tempFilePath: file.tempFilePath,
         size: file.size,
         fileType: (file.fileType || (file.thumbTempFilePath ? "video" : "image")) as "image" | "video",
         thumbTempFilePath: file.thumbTempFilePath,
       }));
-      const assets = await services.uploads.saveLocalMedia(child.id, files);
-      this.setData({ assets: [...this.data.assets, ...assets].slice(0, 9) });
+      prepared = await prepareMedia(files, {
+        cancelled: () => this.mediaCancelled,
+        progress: (mediaProgress) => this.setData({ mediaProgress }),
+        toJpeg: (path, edge, quality) => this.toJpeg(path, edge, quality),
+      });
+      if (this.mediaCancelled) return;
+      this.setData({ processingMedia: false, mediaProgress: "正在保存素材" });
+      const assets = await services.uploads.saveLocalMedia(child.id, prepared.files);
+      keepPaths = assets.map((asset) => asset.localPath || "");
+      this.setData({ assets: [...this.data.assets, ...assets.map(withSizeLabel)].slice(0, 9) });
       if (assets.some((asset) => asset.volatile)) {
         wx.showToast({ title: "部分大文件仅本次会话可预览", icon: "none" });
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "选择素材失败";
-      if (!message.includes("cancel")) {
+      const message = error instanceof Error ? error.message : (error as { errMsg?: string } | null)?.errMsg || "素材处理失败，请更换文件重试";
+      if (!message.includes("cancel") && !this.mediaCancelled) {
         wx.showToast({ title: message, icon: "none" });
       }
+    } finally {
+      await prepared?.dispose(keepPaths);
+      this.setData({ mediaBusy: false, processingMedia: false, mediaProgress: "" });
     }
   },
 
+  cancelMedia() {
+    this.mediaCancelled = true;
+    this.setData({ mediaProgress: "正在取消，请等待当前压缩结束" });
+  },
+
+  onHide() { if (this.data.processingMedia) this.cancelMedia(); },
+  onUnload() { this.mediaCancelled = true; },
+
+  previewAsset(event: WechatMiniprogram.TouchEvent) {
+    if (this.data.mediaBusy) return;
+    const asset = this.data.assets.find((item) => item.id === event.currentTarget.dataset.id);
+    if (asset?.localPath) void wx.previewMedia({ sources: [{ url: asset.localPath, type: asset.kind === "VIDEO" ? "video" : "image", poster: asset.posterPath }] });
+  },
+
+  async toJpeg(path: string, edge: number, quality: number): Promise<string> {
+    const info = await wx.getImageInfo({ src: path });
+    const canvas = await new Promise<WechatMiniprogram.Canvas>((resolve, reject) => {
+      wx.createSelectorQuery().in(this).select("#compression-canvas").fields({ node: true }).exec((results) => {
+        if (results[0]?.node) resolve(results[0].node);
+        else reject(new Error("当前设备不支持图片转换，请更换图片"));
+      });
+    });
+    const scale = Math.min(1, edge / Math.max(info.width, info.height));
+    canvas.width = Math.max(1, Math.round(info.width * scale));
+    canvas.height = Math.max(1, Math.round(info.height * scale));
+    try {
+      const image = canvas.createImage();
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error("图片解码失败，请更换图片"));
+        image.src = path;
+      });
+      const context = canvas.getContext("2d");
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const result = await wx.canvasToTempFilePath({ canvas, fileType: "jpg", quality, width: canvas.width, height: canvas.height, destWidth: canvas.width, destHeight: canvas.height });
+      return result.tempFilePath;
+    } finally { canvas.width = 1; canvas.height = 1; }
+  },
+
   removeAsset(event: WechatMiniprogram.TouchEvent) {
+    if (this.data.mediaBusy) return;
     const id = event.currentTarget.dataset.id as string;
     this.setData({ assets: this.data.assets.filter((asset) => asset.id !== id) });
   },
 
   async submit() {
-    if (this.data.submitting) {
+    if (this.data.submitting || this.data.mediaBusy) {
       return;
     }
     const child = this.data.children[this.data.childIndex];

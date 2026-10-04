@@ -18,6 +18,7 @@ import {
 } from "../types/models";
 
 export interface EntryQuery {
+  year?: string;
   childId?: Id;
   cursor?: string;
   pageSize?: number;
@@ -60,6 +61,7 @@ export interface ChildService {
 }
 
 export interface EntryService {
+  listYears(childId: Id): Promise<string[]>;
   list(query?: EntryQuery): Promise<CursorPage<Entry>>;
   get(id: Id): Promise<Entry>;
   save(draft: EntryDraft): Promise<Entry>;
@@ -75,7 +77,9 @@ export interface UploadService {
 
 export interface ExportService {
   list(): Promise<ExportJob[]>;
-  create(childId: Id, selectedYearMonth: string): Promise<ExportJob>;
+  create(childId: Id, period: string, options?: { progress?: (message: string) => void; cancelled?: () => boolean }): Promise<ExportJob>;
+  getArchivePath(id: Id): Promise<string>;
+  deleteArchive(id: Id): Promise<void>;
   markDownloaded(id: Id): Promise<ExportJob>;
   confirmManualBackup(id: Id): Promise<ExportJob>;
 }

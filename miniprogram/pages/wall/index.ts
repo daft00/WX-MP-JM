@@ -1,6 +1,7 @@
 import { services } from "../../services/index";
 import { Asset, Child, Entry, FamilyMember } from "../../types/models";
 import { calculateAge, formatDate } from "../../utils/date";
+import { groupRecords, RecordYear } from "../../utils/record-groups";
 
 interface EntryCard extends Entry {
   childName: string;
@@ -20,7 +21,12 @@ Page({
     selectedChildName: "",
     children: [] as Child[],
     selectedChildId: "",
+    selectedYear: "",
+    yearOptions: [{ value: "", label: "全部年份" }],
+    yearIndex: 0,
     entries: [] as EntryCard[],
+    years: [] as RecordYear<EntryCard>[],
+    expandedMonth: "",
     nextCursor: "" as string,
     loading: true,
     hasMore: false,
@@ -56,7 +62,13 @@ Page({
         wx.reLaunch({ url: "/pages/select-family/index" });
         return;
       }
+      const availableYears = await services.entries.listYears(selectedChildId);
+      const yearOptions = [{ value: "", label: "全部年份" }, ...availableYears.map((year) => ({ value: year, label: `${year}年` }))];
+      const selectedYear = availableYears.includes(this.data.selectedYear) ? this.data.selectedYear : "";
       this.setData({
+        yearOptions,
+        selectedYear,
+        yearIndex: yearOptions.findIndex((option) => option.value === selectedYear),
         familyName: family.name,
         children,
         selectedChildId,
@@ -64,11 +76,15 @@ Page({
       });
       const page = await services.entries.list({
         childId: selectedChildId,
+        year: selectedYear || undefined,
         pageSize: 8,
       });
       const cards = await this.toCards(page.items, children);
+      const years = groupRecords(cards);
       this.setData({
         entries: cards,
+        years,
+        expandedMonth: years[0]?.months[0]?.key || "",
         nextCursor: page.nextCursor || "",
         hasMore: Boolean(page.nextCursor),
       });
@@ -80,16 +96,19 @@ Page({
   },
 
   async loadMore() {
+    if (this.data.loading || !this.data.hasMore) return;
     this.setData({ loading: true });
     try {
       const page = await services.entries.list({
         childId: this.data.selectedChildId,
+        year: this.data.selectedYear || undefined,
         cursor: this.data.nextCursor,
         pageSize: 8,
       });
       const cards = await this.toCards(page.items, this.data.children);
       this.setData({
         entries: [...this.data.entries, ...cards],
+        years: groupRecords([...this.data.entries, ...cards]),
         nextCursor: page.nextCursor || "",
         hasMore: Boolean(page.nextCursor),
       });
@@ -131,10 +150,24 @@ Page({
     return labels[type] || "成长数据";
   },
 
+  toggleMonth(event: WechatMiniprogram.TouchEvent) {
+    const month = event.currentTarget.dataset.month as string;
+    this.setData({ expandedMonth: this.data.expandedMonth === month ? "" : month });
+  },
+
+  async changeYear(event: WechatMiniprogram.PickerChange) {
+    if (this.data.loading) return;
+    const option = this.data.yearOptions[Number(event.detail.value)];
+    if (!option || option.value === this.data.selectedYear) return;
+    this.setData({ selectedYear: option.value, entries: [], years: [], nextCursor: "", hasMore: false });
+    await this.loadInitial();
+  },
+
   async selectChild(event: WechatMiniprogram.TouchEvent) {
+    if (this.data.loading) return;
     const childId = event.currentTarget.dataset.id as string;
     await services.family.selectChild(childId);
-    this.setData({ selectedChildId: childId });
+    this.setData({ selectedChildId: childId, selectedYear: "", yearIndex: 0, entries: [], years: [], nextCursor: "", hasMore: false });
     await this.loadInitial();
   },
 

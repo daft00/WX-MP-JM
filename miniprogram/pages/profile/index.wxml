@@ -64,7 +64,7 @@
   <view class="menu-card card">
     <view class="menu-row" bindtap="openExport">
       <view class="menu-icon export-icon">⇩</view>
-      <view class="menu-copy"><text class="menu-title">素材导出</text><text class="meta">按宝宝和月份模拟分卷导出</text></view>
+      <view class="menu-copy"><text class="menu-title">素材导出</text><text class="meta">按月、季度或年度导出素材与离线记录墙</text></view>
       <text class="chevron">›</text>
     </view>
     <view class="menu-row" bindtap="resetData">

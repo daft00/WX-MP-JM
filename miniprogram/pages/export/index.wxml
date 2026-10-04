@@ -1,26 +1,39 @@
 <view class="page export-page">
   <view class="export-hero">
     <text class="export-kicker">MANUAL ARCHIVE</text>
-    <text class="export-title">把珍贵原件，<text class="title-break">带到另一份安心里</text></text>
+    <text class="export-title">把成长记录，<text class="title-break">带到离线相册里</text></text>
   </view>
 
-  <view class="prototype-banner">当前只模拟导出任务，不生成 ZIP、不连接夸克网盘，也无法验证任何备份结果。</view>
+  <view class="prototype-banner">导出本机现有照片、视频和HTML记录墙。先解压整个ZIP，再用浏览器打开index.html，按记录日期从早到晚浏览。素材为当前保存版本（可能已压缩），不连接夸克网盘；占位或丢失素材无法导出。</view>
 
   <view class="create-card card">
-    <text class="create-title">新建按月导出</text>
+    <text class="create-title">新建素材导出</text>
     <view class="field">
       <text class="field-label">选择宝宝</text>
-      <picker mode="selector" range="{{children}}" range-key="name" value="{{childIndex}}" bindchange="changeChild">
+      <picker disabled="{{creating}}" mode="selector" range="{{children}}" range-key="name" value="{{childIndex}}" bindchange="changeChild">
         <view class="picker-box">{{children[childIndex].name || '暂无宝宝档案'}}</view>
       </picker>
     </view>
     <view class="field">
+      <text class="field-label">导出范围</text>
+      <picker disabled="{{creating}}" range="{{periodTypes}}" value="{{periodIndex}}" bindchange="changePeriod"><view class="picker-box">{{periodTypes[periodIndex]}}</view></picker>
+    </view>
+    <view wx:if="{{periodIndex === 0}}" class="field">
       <text class="field-label">选择月份</text>
-      <picker mode="date" fields="month" value="{{selectedMonth}}" bindchange="changeMonth">
+      <picker disabled="{{creating}}" mode="date" fields="month" value="{{selectedMonth}}" bindchange="changeMonth">
         <view class="picker-box">{{selectedMonth}}</view>
       </picker>
     </view>
-    <button class="primary-button" disabled="{{!isAdmin}}" loading="{{creating}}" bindtap="createExport">生成演示导出任务</button>
+    <view wx:else class="field">
+      <text class="field-label">选择年份</text>
+      <picker disabled="{{creating}}" mode="date" fields="year" value="{{selectedYear}}" bindchange="changeYear"><view class="picker-box">{{selectedYear}}年</view></picker>
+    </view>
+    <view wx:if="{{periodIndex === 1}}" class="field">
+      <text class="field-label">选择季度</text>
+      <picker disabled="{{creating}}" range="{{quarters}}" value="{{quarterIndex}}" bindchange="changeQuarter"><view class="picker-box">{{quarters[quarterIndex]}}</view></picker>
+    </view>
+    <button class="primary-button" disabled="{{!isAdmin || creating || sharing}}" loading="{{creating}}" bindtap="createExport">生成素材与HTML导出包</button>
+    <view wx:if="{{creating}}" class="export-progress"><text>{{progress}}</text><button size="mini" bindtap="cancelExport">取消导出</button></view>
     <text wx:if="{{!isAdmin}}" class="permission-note">当前为普通成员，只有管理员可以创建导出。</text>
   </view>
 
@@ -28,15 +41,16 @@
   <view wx:if="{{jobs.length}}" class="job-list">
     <view wx:for="{{jobs}}" wx:key="id" class="job-card card">
       <view class="job-top">
-        <view><text class="job-name">{{item.childName}} · {{item.yearMonth}}</text><text class="meta">创建于 {{item.createdLabel}}</text></view>
+        <view><text class="job-name">{{item.childName}} · {{item.periodLabel}}</text><text class="meta">创建于 {{item.createdLabel}}</text></view>
         <text class="status status-{{item.status}}">{{item.statusLabel}}</text>
       </view>
       <view class="job-info">
-        <text>模拟分卷：{{item.partCount}} 个</text>
-        <text>演示失效时间：{{item.expiresLabel}}</text>
+        <text wx:if="{{item.entryCount !== undefined}}">{{item.entryCount}} 条记录 · {{item.assetCount}} 个素材 · {{item.sizeLabel}}</text>
+        <text>ZIP包含index.html和media目录，解压后离线浏览</text>
       </view>
-      <button wx:if="{{item.canDownload}}" class="secondary-button job-button" data-id="{{item.id}}" bindtap="simulateDownload">模拟下载 ZIP</button>
-      <button wx:if="{{item.canConfirm}}" class="secondary-button job-button" data-id="{{item.id}}" bindtap="confirmBackup">确认已人工上传夸克</button>
+      <button wx:if="{{isAdmin && item.canDownload}}" disabled="{{creating || sharing}}" class="secondary-button job-button" data-id="{{item.id}}" bindtap="shareArchive">分享 / 保存 ZIP</button>
+      <button wx:if="{{isAdmin && item.canDownload}}" disabled="{{creating || sharing}}" class="secondary-button job-button" data-id="{{item.id}}" bindtap="deleteArchive">清理本地导出包</button>
+      <button wx:if="{{isAdmin && item.canConfirm}}" class="secondary-button job-button" data-id="{{item.id}}" bindtap="confirmBackup">确认已人工上传夸克</button>
       <view wx:if="{{item.status === 'CONFIRMED'}}" class="confirmed-note">✓ 此状态来自用户人工确认，未经夸克验证</view>
     </view>
   </view>

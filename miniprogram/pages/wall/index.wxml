@@ -29,45 +29,66 @@
     </view>
   </scroll-view>
 
-  <view wx:if="{{entries.length}}" class="timeline">
-    <view wx:for="{{entries}}" wx:key="id" class="timeline-item">
-      <view class="timeline-dot" style="background: {{item.childColor}};"></view>
-      <view class="timeline-card card" data-id="{{item.id}}" bindtap="openEntry">
-        <view class="card-head">
-          <view class="child-avatar" style="background: {{item.childColor}};">{{item.childInitial}}</view>
-          <view class="card-head-copy">
-            <view><text class="child-name">{{item.childName}}</text><text class="age-label">{{item.ageLabel}}</text></view>
-            <text class="meta">{{item.dateLabel}} · {{item.authorName}}</text>
-          </view>
-          <text class="kind-badge">{{item.kindLabel}}</text>
-        </view>
+  <view class="year-filter">
+    <text>记录年份</text>
+    <picker mode="selector" range="{{yearOptions}}" range-key="label" value="{{yearIndex}}" disabled="{{loading}}" bindchange="changeYear">
+      <view class="year-picker">{{yearOptions[yearIndex].label}} <text>⌄</text></view>
+    </picker>
+  </view>
 
-        <view wx:if="{{item.assets.length}}" class="media-grid media-count-{{item.assets.length}}">
-          <view wx:for="{{item.assets}}" wx:key="id" wx:for-item="asset" class="media-cell tone-{{asset.placeholderTone}}">
-            <image wx:if="{{asset.kind === 'IMAGE' && asset.localPath}}" class="media-image" src="{{asset.localPath}}" mode="aspectFill" />
-            <image wx:elif="{{asset.kind === 'VIDEO' && asset.posterPath}}" class="media-image" src="{{asset.posterPath}}" mode="aspectFill" />
-            <view wx:else class="media-placeholder">
-              <text class="media-icon">{{asset.kind === 'VIDEO' ? '▶' : '✦'}}</text>
-              <text>{{asset.kind === 'VIDEO' ? '视频片段' : '温暖瞬间'}}</text>
+  <view wx:if="{{years.length}}" class="record-archive">
+    <view wx:for="{{years}}" wx:for-item="yearGroup" wx:key="year" class="year-group">
+      <view class="year-content">
+        <view wx:for="{{yearGroup.months}}" wx:for-item="monthGroup" wx:key="key" class="month-group">
+          <button class="archive-heading month-heading" data-month="{{monthGroup.key}}" bindtap="toggleMonth" aria-expanded="{{expandedMonth === monthGroup.key}}">
+            <text>{{yearGroup.year}}年 {{monthGroup.label}}</text>
+            <text class="archive-arrow {{expandedMonth === monthGroup.key ? 'expanded' : ''}}">›</text>
+          </button>
+          <view wx:if="{{expandedMonth === monthGroup.key}}" class="timeline">
+            <view wx:for="{{monthGroup.entries}}" wx:key="id" class="timeline-item">
+              <view class="timeline-dot" style="background: {{item.childColor}};"></view>
+              <view class="timeline-card card" data-id="{{item.id}}" bindtap="openEntry">
+                <view class="record-time">{{item.dateLabel}}</view>
+                <view class="card-head">
+                  <view class="child-avatar" style="background: {{item.childColor}};">{{item.childInitial}}</view>
+                  <view class="card-head-copy">
+                    <view><text class="child-name">{{item.childName}}</text><text class="age-label">{{item.ageLabel}}</text></view>
+                    <text class="meta">{{item.authorName}}</text>
+                  </view>
+                  <text class="kind-badge">{{item.kindLabel}}</text>
+                </view>
+
+                <view wx:if="{{item.assets.length}}" class="media-grid media-count-{{item.assets.length}}">
+                  <view wx:for="{{item.assets}}" wx:key="id" wx:for-item="asset" class="media-cell tone-{{asset.placeholderTone}}">
+                    <image wx:if="{{asset.kind === 'IMAGE' && asset.localPath}}" class="media-image" src="{{asset.localPath}}" mode="aspectFill" />
+                    <image wx:elif="{{asset.kind === 'VIDEO' && asset.posterPath}}" class="media-image" src="{{asset.posterPath}}" mode="aspectFill" />
+                    <view wx:else class="media-placeholder">
+                      <text class="media-icon">{{asset.kind === 'VIDEO' ? '▶' : '✦'}}</text>
+                      <text>{{asset.kind === 'VIDEO' ? '视频片段' : '温暖瞬间'}}</text>
+                    </view>
+                    <text wx:if="{{asset.kind === 'VIDEO'}}" class="video-tag">视频</text>
+                  </view>
+                </view>
+
+                <view class="card-body">
+                  <view class="title-line">
+                    <text class="entry-title">{{item.title}}</text>
+                    <text wx:if="{{item.metricLabel}}" class="metric-chip">{{item.metricLabel}}</text>
+                  </view>
+                  <text class="entry-body">{{item.body}}</text>
+                  <view class="card-foot">
+                    <text wx:if="{{item.customEvent}}" class="event-label">🎈 {{item.customEvent}}</text>
+                    <text class="open-label">查看记录 ›</text>
+                  </view>
+                </view>
+              </view>
             </view>
-            <text wx:if="{{asset.kind === 'VIDEO'}}" class="video-tag">视频</text>
-          </view>
-        </view>
-
-        <view class="card-body">
-          <view class="title-line">
-            <text class="entry-title">{{item.title}}</text>
-            <text wx:if="{{item.metricLabel}}" class="metric-chip">{{item.metricLabel}}</text>
-          </view>
-          <text class="entry-body">{{item.body}}</text>
-          <view class="card-foot">
-            <text wx:if="{{item.customEvent}}" class="event-label">🎈 {{item.customEvent}}</text>
-            <text class="open-label">查看记录 ›</text>
           </view>
         </view>
       </view>
     </view>
-    <view wx:if="{{loading}}" class="load-more">正在翻阅成长记忆…</view>
+    <view wx:if="{{loading}}" class="load-more">正在加载记录…</view>
+    <button wx:elif="{{hasMore}}" class="load-more-button" bindtap="loadMore">加载更早记录</button>
     <view wx:elif="{{!hasMore}}" class="load-more">已经看到最早的记忆了</view>
   </view>
 
@@ -75,6 +96,7 @@
     <text class="empty-icon">🌱</text>
     <text>还没有成长记录</text>
   </view>
+  <view wx:else class="load-more">正在加载记录…</view>
 
   <view class="floating-button" bindtap="goPublish">＋ 记录今天</view>
 </view>

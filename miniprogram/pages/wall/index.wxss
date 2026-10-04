@@ -84,6 +84,21 @@
   padding-left: 32rpx;
 }
 
+.year-group { margin-bottom: 24rpx; }
+.year-filter { display: flex; align-items: center; justify-content: space-between; margin: 0 0 24rpx 32rpx; color: #8d6855; font-size: 26rpx; }
+.year-picker { min-width: 200rpx; display: flex; justify-content: space-between; gap: 24rpx; padding: 16rpx 24rpx; border-radius: 16rpx; background: #fff1e8; }
+.archive-heading { display: flex; align-items: center; justify-content: space-between; width: 100%; margin: 0; text-align: left; line-height: 1.5; }
+.archive-heading::after, .load-more-button::after { border: 0; }
+.year-content { padding: 0; }
+/* 显式覆盖微信 button 默认宽度和居中边距，让年月从卡片左边缘开始。 */
+button.archive-heading.month-heading { width: calc(100% - 32rpx); box-sizing: border-box; margin: 0 0 0 32rpx; padding: 20rpx 0; border-radius: 16rpx; background: #fff8f2; color: #8d6855; font-size: 28rpx; }
+.record-time { padding: 20rpx 24rpx 0; color: #8d6855; font-size: 24rpx; }
+.month-group { margin-bottom: 16rpx; }
+.month-group .timeline { margin-top: 22rpx; }
+.archive-arrow { display: inline-block; font-size: 38rpx; line-height: 1; transition: transform .2s ease; }
+.archive-arrow.expanded { transform: rotate(90deg); }
+.load-more-button { margin: 20rpx auto; background: #fff1e8; color: #a36e55; font-size: 26rpx; border-radius: 18rpx; }
+
 .timeline::before {
   position: absolute;
   top: 18rpx;

@@ -23,10 +23,30 @@
     "backgroundColor": "#FFFCF8",
     "borderStyle": "white",
     "list": [
-      { "pagePath": "pages/wall/index", "text": "成长墙" },
-      { "pagePath": "pages/publish/index", "text": "发布" },
-      { "pagePath": "pages/growth/index", "text": "成长数据" },
-      { "pagePath": "pages/profile/index", "text": "我的" }
+      {
+        "pagePath": "pages/wall/index",
+        "text": "记录墙",
+        "iconPath": "assets/tabbar/wall.png",
+        "selectedIconPath": "assets/tabbar/wall-active.png"
+      },
+      {
+        "pagePath": "pages/publish/index",
+        "text": "发布",
+        "iconPath": "assets/tabbar/publish.png",
+        "selectedIconPath": "assets/tabbar/publish-active.png"
+      },
+      {
+        "pagePath": "pages/growth/index",
+        "text": "成长数据",
+        "iconPath": "assets/tabbar/growth.png",
+        "selectedIconPath": "assets/tabbar/growth-active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "assets/tabbar/profile.png",
+        "selectedIconPath": "assets/tabbar/profile-active.png"
+      }
     ]
   },
   "style": "v2",

@@ -1,3 +1,6 @@
+import { assertMediaSize, readMediaSize } from "./media-policy";
+import { exportRange } from "../utils/export-archive";
+import { createLocalArchive, discardArchive, ExportProgress } from "./local-archive";
 import {
   Asset,
   Child,
@@ -380,6 +383,14 @@ class MockChildService implements ChildService {
 }
 
 class MockEntryService implements EntryService {
+  async listYears(childId: Id): Promise<string[]> {
+    const state = loadState();
+    const session = requireActiveSession(state);
+    return [...new Set(state.entries
+      .filter((entry) => entry.familyId === session.family.id && entry.childId === childId)
+      .map((entry) => entry.occurredAt.slice(0, 4)))].sort().reverse();
+  }
+
   async list(query: EntryQuery = {}): Promise<{ items: Entry[]; nextCursor?: string }> {
     const state = loadState();
     const session = requireActiveSession(state);
@@ -388,6 +399,7 @@ class MockEntryService implements EntryService {
     const matched = state.entries
       .filter((item) => item.familyId === session.family.id)
       .filter((item) => !query.childId || item.childId === query.childId)
+      .filter((item) => !query.year || item.occurredAt.startsWith(`${query.year}-`))
       .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt) || b.createdAt.localeCompare(a.createdAt));
     const items = matched.slice(offset, offset + pageSize);
     const nextOffset = offset + items.length;
@@ -515,6 +527,13 @@ class MockEntryService implements EntryService {
 
 class MockUploadService implements UploadService {
   async saveLocalMedia(childId: Id, files: LocalMediaFile[]): Promise<Asset[]> {
+    if (!files.length || files.length > 9) throw new Error("每次请选择1至9个素材");
+    const sizes: number[] = [];
+    for (const file of files) {
+      const size = await readMediaSize(file.tempFilePath);
+      assertMediaSize(file.fileType, size);
+      sizes.push(size);
+    }
     const state = loadState();
     const session = requireActiveSession(state);
     const child = state.children.find(
@@ -524,7 +543,7 @@ class MockUploadService implements UploadService {
       throw new Error("请选择有效的宝宝档案");
     }
     const assets: Asset[] = [];
-    for (const [index, file] of files.slice(0, 9).entries()) {
+    for (const [index, file] of files.entries()) {
       const persisted = await persistFile(file.tempFilePath);
       const poster = file.thumbTempFilePath ? await persistFile(file.thumbTempFilePath) : undefined;
       const kind = file.fileType === "video" ? "VIDEO" : "IMAGE";
@@ -534,6 +553,7 @@ class MockUploadService implements UploadService {
         childId,
         creatorId: session.user.id,
         kind,
+        sizeBytes: sizes[index],
         name: `本地${kind === "VIDEO" ? "视频" : "照片"}${index + 1}`,
         localPath: persisted.path,
         posterPath: poster?.path,
@@ -569,38 +589,67 @@ class MockExportService implements ExportService {
     );
   }
 
-  async create(childId: Id, selectedYearMonth: string): Promise<ExportJob> {
+  async create(childId: Id, period: string, options: ExportProgress = {}): Promise<ExportJob> {
     const state = loadState();
     const session = requireActiveSession(state);
     if (!isAdmin(session.membership.role)) {
       throw new Error("只有管理员可以创建素材导出");
     }
-    const hasChild = state.children.some(
+    const child = state.children.find(
       (item) => item.id === childId && item.familyId === session.family.id,
     );
-    if (!hasChild) {
+    if (!child) {
       throw new Error("请选择有效的宝宝档案");
     }
-    const assetCount = state.entries
-      .filter((entry) => entry.childId === childId && entry.occurredAt.startsWith(selectedYearMonth))
-      .reduce((total, entry) => total + entry.assetIds.length, 0);
+    const range = exportRange(period);
+    const entries = state.entries.filter((entry) => entry.familyId === session.family.id && entry.childId === childId && entry.occurredAt >= range.start && entry.occurredAt < range.end);
+    if (!entries.length) throw new Error("所选时间范围内没有记录");
+    const id = createId("export");
+    const localZipPath = `${wx.env.USER_DATA_PATH}/${id}.zip`;
+    const info = await createLocalArchive(localZipPath, child, period, entries, state.assets, options);
     const job: ExportJob = {
-      id: createId("export"),
+      id,
       familyId: session.family.id,
       childId,
       creatorId: session.user.id,
-      yearMonth: selectedYearMonth,
+      yearMonth: period,
+      localZipPath,
+      ...info,
       status: "READY",
-      partCount: Math.max(1, Math.ceil(assetCount / 20)),
+      partCount: 1,
       createdAt: new Date().toISOString(),
-      expiresAt: addHours(new Date(), 24 * 7),
     };
-    state.exports.unshift(job);
-    saveState(state);
+    try {
+      // 打包耗时较长，提交时重新读取状态与权限，避免覆盖期间产生的新记录。
+      const current = loadState(), actor = requireActiveSession(current);
+      if (options.cancelled?.() || actor.user.id !== session.user.id || actor.family.id !== session.family.id || !isAdmin(actor.membership.role)) throw new Error("导出已取消或当前权限发生变化");
+      current.exports.unshift(job);
+      saveState(current);
+    } catch (error) { await discardArchive(localZipPath); throw error; }
     return clone(job);
   }
 
+  async getArchivePath(id: Id): Promise<string> {
+    const state = loadState(), session = requireActiveSession(state);
+    if (!isAdmin(session.membership.role)) throw new Error("只有管理员可以导出素材");
+    const job = state.exports.find((item) => item.id === id && item.familyId === session.family.id);
+    if (!job?.localZipPath) throw new Error("此任务没有真实导出包，请重新生成");
+    await readMediaSize(job.localZipPath);
+    return job.localZipPath;
+  }
+
+  async deleteArchive(id: Id): Promise<void> {
+    const path = await this.getArchivePath(id);
+    // 只删除本任务生成的ZIP，保留照片、视频原文件及导出记录。
+    if (!path.startsWith(`${wx.env.USER_DATA_PATH}/export_`) || !path.endsWith(".zip")) throw new Error("无效的导出包路径");
+    await new Promise<void>((resolve, reject) => wx.getFileSystemManager().unlink({ filePath: path, success: () => resolve(), fail: reject }));
+    const state = loadState();
+    const job = state.exports.find((item) => item.id === id);
+    if (job) { delete job.localZipPath; saveState(state); }
+  }
+
   async markDownloaded(id: Id): Promise<ExportJob> {
+    await this.getArchivePath(id);
     return this.updateStatus(id, "DOWNLOADED");
   }
 
@@ -620,6 +669,7 @@ class MockExportService implements ExportService {
     if (index < 0) {
       throw new Error("导出任务不存在");
     }
+    if (status === "CONFIRMED" && state.exports[index].status !== "DOWNLOADED") throw new Error("请先分享导出包，再确认备份");
     state.exports[index].status = status;
     if (status === "CONFIRMED") {
       state.exports[index].confirmedAt = new Date().toISOString();

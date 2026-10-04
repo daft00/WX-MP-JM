@@ -18,6 +18,7 @@ interface UserCard extends User {
 
 Page({
   data: {
+    contentTop: 88,
     step: "FAMILY" as "FAMILY" | "CHILD",
     session: null as Session | null,
     users: [] as UserCard[],
@@ -29,14 +30,31 @@ Page({
   },
 
   async onLoad() {
+    this.updateContentTop();
     await services.family.clearSelection();
     await this.loadFamilies();
   },
 
   async onShow() {
+    this.updateContentTop();
     if (this.data.step === "CHILD" && this.data.selectedFamily) {
       await this.loadChildren();
     }
+  },
+
+  onResize() {
+    this.updateContentTop();
+  },
+
+  updateContentTop() {
+    const windowInfo = wx.getWindowInfo();
+    const statusBarHeight = Math.max(windowInfo.statusBarHeight || 0, windowInfo.safeArea?.top || 0);
+    const menu = wx.getMenuButtonBoundingClientRect();
+    // 自定义导航需要同时避开状态栏和微信胶囊；尺寸异常时保留标准导航高度。
+    const contentTop = menu.height > 0 && menu.top >= statusBarHeight
+      ? Math.max(statusBarHeight + 44, menu.bottom + (menu.top - statusBarHeight))
+      : statusBarHeight + 44;
+    this.setData({ contentTop });
   },
 
   async loadFamilies() {

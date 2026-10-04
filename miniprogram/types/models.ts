@@ -46,6 +46,7 @@ export interface Asset {
   creatorId: Id;
   kind: AssetKind;
   name: string;
+  sizeBytes?: number;
   localPath?: string;
   posterPath?: string;
   placeholderTone: string;
@@ -96,6 +97,10 @@ export interface ExportJob {
   childId: Id;
   creatorId: Id;
   yearMonth: string;
+  localZipPath?: string;
+  sizeBytes?: number;
+  entryCount?: number;
+  assetCount?: number;
   status: ExportStatus;
   partCount: number;
   createdAt: string;

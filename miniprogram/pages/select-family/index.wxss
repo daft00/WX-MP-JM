@@ -1,4 +1,4 @@
-.select-page { position: relative; min-height: 100vh; padding: calc(env(safe-area-inset-top) + 34rpx) 34rpx 50rpx; overflow: hidden; background: linear-gradient(180deg, #fffaf4 0%, #fff7ef 100%); }
+.select-page { position: relative; min-height: 100vh; padding: calc(env(safe-area-inset-top) + 44px + 34rpx) 34rpx 50rpx; overflow: hidden; background: linear-gradient(180deg, #fffaf4 0%, #fff7ef 100%); }
 .soft-orb { position: absolute; border-radius: 50%; filter: blur(4rpx); opacity: .5; }
 .orb-one { top: -100rpx; right: -120rpx; width: 360rpx; height: 360rpx; background: #f7d4c7; }
 .orb-two { bottom: 120rpx; left: -180rpx; width: 400rpx; height: 400rpx; background: #e3eddf; }
