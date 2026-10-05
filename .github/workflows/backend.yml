@@ -1,8 +1,6 @@
 name: Backend checks
 
 on:
-  push:
-    paths: ['backend/**', 'scripts/**', '.gitattributes', '.github/workflows/backend.yml']
   pull_request:
     paths: ['backend/**', 'scripts/**', '.gitattributes', '.github/workflows/backend.yml']
 
