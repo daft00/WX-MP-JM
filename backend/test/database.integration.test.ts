@@ -101,6 +101,15 @@ test("MySQL 8.4 migrations and relational constraints", { timeout: 60000 }, asyn
       const result = await runner.query("SELECT value FROM metrics WHERE id = ?", [metric.id]);
       assert.equal(result[0].value, "3.125");
     });
+    await t.test("export month accepts valid months and rejects invalid months", async () => {
+      const job = { family_id: familyA, child_id: childA, creator_id: userA };
+      for (const year_month of ["2026-01", "2026-12"]) {
+        await insert("export_jobs", { ...job, id: randomUUID(), year_month });
+      }
+      for (const year_month of ["2026-00", "2026-13", "invalid"]) {
+        await rejects(insert("export_jobs", { ...job, id: randomUUID(), year_month }), "ER_CHECK_CONSTRAINT_VIOLATED");
+      }
+    });
     await t.test("rollback refuses data and entry deletion retains its COS asset record", async () => {
       await assert.rejects(new InitialSchema1790985600000().down(runner), /non-empty schema/);
       await runner.query("DELETE FROM entries WHERE id = ?", [entryA.id]);

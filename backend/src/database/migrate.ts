@@ -23,8 +23,9 @@ export async function execute(source: DataSource, command: string): Promise<void
     await source.initialize();
     lock = source.createQueryRunner();
     await lock.connect();
-    const rows: { acquired: number | null }[] = await lock.query("SELECT GET_LOCK(?, 0) AS acquired", [name]);
-    if (rows[0]?.acquired !== 1) throw new Error("Another migration is running");
+    const rows: { acquired: number | string | null }[] = await lock.query("SELECT GET_LOCK(?, 0) AS acquired", [name]);
+    // mysql2 的 bigNumberStrings 配置可能将 GET_LOCK 的成功值返回为字符串。
+    if (rows[0]?.acquired !== 1 && rows[0]?.acquired !== "1") throw new Error("Another migration is running");
     acquired = true;
     await lock.query("SET SESSION time_zone = '+00:00'");
     const executor = new MigrationExecutor(source, lock);

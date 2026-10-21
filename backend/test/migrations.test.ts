@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import type { DataSource, QueryRunner } from "typeorm";
+import { MigrationExecutor } from "typeorm";
 import { createMigrationDataSource } from "../src/database/data-source";
 import { execute } from "../src/database/migrate";
 import { InitialSchema1790985600000 } from "../src/database/migrations/1790985600000-initial-schema";
@@ -50,6 +51,34 @@ test("concurrent migration refusal still releases its connection", async () => {
   await assert.rejects(execute(source, "run"), /Another migration/);
   assert.ok(released && destroyed);
 });
+
+for (const acquired of [1, "1", 0, "0", null]) {
+  test(`migration lock handles ${JSON.stringify(acquired)} (${typeof acquired}) and cleans up`, async (t) => {
+    const queries: string[] = [];
+    let released = false, destroyed = false;
+    const runner = {
+      connect: async () => {},
+      query: async (sql: string) => { queries.push(sql); return [{ acquired }]; },
+      release: async () => { released = true; },
+    };
+    const source = {
+      options: { database: "growth_diary_test" },
+      driver: { options: {}, database: "growth_diary_test", buildTableName: (name: string) => name },
+      initialize: async () => {},
+      isInitialized: true,
+      createQueryRunner: () => runner,
+      destroy: async () => { destroyed = true; },
+    } as unknown as DataSource;
+    const migrationError = new Error("Migration execution failed");
+    const migrate = t.mock.method(MigrationExecutor.prototype, "executePendingMigrations", async () => { throw migrationError; });
+    const granted = acquired === 1 || acquired === "1";
+    if (granted) await assert.rejects(execute(source, "run"), (error) => error === migrationError);
+    else await assert.rejects(execute(source, "run"), /Another migration is running/);
+    assert.equal(migrate.mock.callCount(), granted ? 1 : 0);
+    assert.equal(queries.some((sql) => sql.startsWith("SELECT RELEASE_LOCK")), granted);
+    assert.ok(released && destroyed);
+  });
+}
 
 test("non-empty schema rollback is refused before any DROP", async () => {
   const queries: string[] = [];
