@@ -1,3 +1,6 @@
+import { exerciseGovernance } from "./governance.integration";
+import { exerciseExports } from "./exports.integration";
+import { exerciseMedia } from "./media.integration";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { test } from "node:test";
@@ -31,11 +34,11 @@ test("MySQL 8.4 migrations and relational constraints", { timeout: 60000 }, asyn
     await runner.query("SET SESSION time_zone = '+00:00'");
     const executor = new MigrationExecutor(source, runner);
     executor.transaction = "none";
-    assert.equal((await executor.executePendingMigrations()).length, 2);
+    assert.equal((await executor.executePendingMigrations()).length, 8);
     assert.equal((await executor.executePendingMigrations()).length, 0);
     assert.equal((await executor.getPendingMigrations()).length, 0);
     const inventory = await runner.query("SELECT table_name AS name FROM information_schema.tables WHERE table_schema = DATABASE()");
-    assert.deepEqual(inventory.map((row: { name: string }) => row.name).sort(), [...INITIAL_TABLE_NAMES, "auth_sessions", "schema_migrations"].sort());
+    assert.deepEqual(inventory.map((row: { name: string }) => row.name).sort(), [...INITIAL_TABLE_NAMES, "auth_sessions", "family_creation_permissions", "entry_requests", "family_storage", "media_uploads", "export_tasks", "export_pairings", "policy_consents", "data_requests", "schema_migrations"].sort());
 
     const insert = (table: string, values: Record<string, unknown>) => runner.query(
       `INSERT INTO \`${table}\` (${Object.keys(values).map((key) => `\`${key}\``).join(",")}) VALUES (${Object.keys(values).map(() => "?").join(",")})`,
@@ -141,6 +144,8 @@ test("MySQL 8.4 migrations and relational constraints", { timeout: 60000 }, asyn
         await store.deleteSession(firstHash);
         assert.equal(await store.findSession(firstHash), null);
         assert.ok(await store.findSession(secondHash));
+        await store.updateNickname(first.id, "真实库昵称");
+        assert.equal((await store.findSession(secondHash))?.user.nickname, "真实库昵称");
         await runner.query("UPDATE auth_sessions SET created_at = UTC_TIMESTAMP(3) - INTERVAL 2 HOUR, expires_at = UTC_TIMESTAMP(3) - INTERVAL 1 HOUR WHERE token_hash = ?", [secondHash]);
         assert.equal(await store.findSession(secondHash), null);
       } finally {
@@ -152,12 +157,33 @@ test("MySQL 8.4 migrations and relational constraints", { timeout: 60000 }, asyn
     await exerciseFamilies(t, runner, url!);
     await exerciseEntries(t, runner, url!);
     await exerciseAdmin(t, runner, url!);
+    await exerciseMedia(t, runner, url!);
+    await exerciseExports(t, runner, url!);
+    await exerciseGovernance(t, runner, url!);
+    await executor.undoLastMigration();
+    assert.equal(await runner.hasColumn("families", "deleting_at"), false);
+    await executor.undoLastMigration();
+    assert.equal(await runner.hasTable("policy_consents"), false);
+    await executor.undoLastMigration();
+    assert.equal(await runner.hasTable("export_tasks"), false);
+    await executor.undoLastMigration();
+    assert.equal(await runner.hasTable("media_uploads"), false);
+    await executor.undoLastMigration();
+    assert.equal(await runner.hasTable("entry_requests"), false);
+    await executor.undoLastMigration();
+    assert.equal(await runner.hasTable("family_creation_permissions"), false);
     await executor.undoLastMigration();
     assert.equal(await runner.hasTable("auth_sessions"), false);
     await executor.undoLastMigration();
     for (const name of INITIAL_TABLE_NAMES) assert.equal(await runner.hasTable(name), false);
     // 回滚后还能重新升级，且再次回滚可保持专用测试库为空，允许重复验收。
-    assert.equal((await executor.executePendingMigrations()).length, 2);
+    assert.equal((await executor.executePendingMigrations()).length, 8);
+    await executor.undoLastMigration();
+    await executor.undoLastMigration();
+    await executor.undoLastMigration();
+    await executor.undoLastMigration();
+    await executor.undoLastMigration();
+    await executor.undoLastMigration();
     await executor.undoLastMigration();
     await executor.undoLastMigration();
     await runner.query("DROP TABLE schema_migrations");

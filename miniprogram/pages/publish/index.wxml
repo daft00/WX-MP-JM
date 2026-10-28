@@ -4,7 +4,7 @@
     <text class="heading-title">{{editingId ? '重新写好这段记忆' : '今天，有什么值得记住？'}}</text>
   </view>
 
-  <view class="prototype-banner">素材仅保存到本机小程序沙箱，大文件可能只在当前会话有效，请勿把原型当作正式相册。</view>
+  <view class="prototype-banner">{{mediaEnabled ? storageLabel : "媒体服务尚未配置，当前可保存文字记录。"}}</view>
 
   <view class="kind-switch">
     <view class="kind-option {{kind === 'DIARY' ? 'active' : ''}}" data-kind="DIARY" bindtap="selectKind">
@@ -18,32 +18,32 @@
   <view class="form-card card">
     <view class="field">
       <text class="field-label">记录给谁</text>
-      <picker disabled="{{mediaBusy}}" mode="selector" range="{{children}}" range-key="name" value="{{childIndex}}" bindchange="changeChild">
+      <picker disabled="{{true}}" mode="selector" range="{{children}}" range-key="name" value="{{childIndex}}" bindchange="changeChild">
         <view class="picker-box">{{children[childIndex].name || '请先创建宝宝档案'}} <text class="picker-arrow">⌄</text></view>
       </picker>
     </view>
 
     <view class="field">
       <text class="field-label">成长日期</text>
-      <picker mode="date" value="{{occurredAt}}" bindchange="changeDate">
+      <picker disabled="{{pending || submitting || !ready}}" mode="date" value="{{occurredAt}}" bindchange="changeDate">
         <view class="picker-box">{{occurredAt}} <text class="picker-arrow">⌄</text></view>
       </picker>
     </view>
 
     <view class="field">
       <view class="field-row"><text class="field-label">标题</text><text class="counter">{{titleCount}}/60</text></view>
-      <input class="input" value="{{title}}" maxlength="60" placeholder="例如：第一次叫妈妈" bindinput="inputTitle" />
+      <input disabled="{{pending || submitting || !ready}}" class="input" value="{{title}}" maxlength="60" placeholder="例如：第一次叫妈妈" bindinput="inputTitle" />
     </view>
 
     <view class="field">
       <view class="field-row"><text class="field-label">写下这一刻</text><text class="counter">{{bodyCount}}/2000</text></view>
-      <textarea class="textarea" value="{{body}}" maxlength="2000" placeholder="把当时的心情、宝宝的反应都记下来…" bindinput="inputBody" />
+      <textarea disabled="{{pending || submitting || !ready}}" class="textarea" value="{{body}}" maxlength="2000" placeholder="把当时的心情、宝宝的反应都记下来…" bindinput="inputBody" />
     </view>
 
     <view wx:if="{{kind === 'MILESTONE'}}" class="milestone-panel">
       <view class="field">
         <text class="field-label">自定义事件</text>
-        <input class="input" value="{{customEvent}}" placeholder="例如：第一次微笑" bindinput="inputCustomEvent" />
+        <input disabled="{{pending || submitting || !ready}}" class="input" value="{{customEvent}}" placeholder="例如：第一次微笑" bindinput="inputCustomEvent" />
       </view>
       <view class="field">
         <text class="field-label">成长指标（可选）</text>
@@ -53,13 +53,13 @@
           <view class="metric-option {{metricType === 'HEAD' ? 'active' : ''}}" data-type="HEAD" bindtap="selectMetric">头围</view>
         </view>
         <view wx:if="{{metricType}}" class="metric-input-row">
-          <input class="input metric-input" type="digit" value="{{metricValue}}" placeholder="请输入数值" bindinput="inputMetricValue" />
+          <input disabled="{{pending || submitting || !ready}}" class="input metric-input" type="digit" value="{{metricValue}}" placeholder="请输入数值" bindinput="inputMetricValue" />
           <text class="metric-unit">{{metricType === 'WEIGHT' ? 'kg' : 'cm'}}</text>
         </view>
       </view>
     </view>
 
-    <view class="field media-field">
+    <view wx:if="{{mediaEnabled}}" class="field media-field">
       <view class="field-row"><text class="field-label">照片与视频</text><text class="counter">{{assets.length}}/9</text></view>
       <view class="media-help">图片≤10MB，视频≤50MB；超限自动压缩。需要转为JPEG时透明区域变白底，处理后可点击预览。</view>
       <view wx:if="{{mediaBusy}}" class="media-help">{{mediaProgress || "正在选择素材"}}<button wx:if="{{processingMedia}}" size="mini" bindtap="cancelMedia">取消处理</button></view>
@@ -79,7 +79,13 @@
     </view>
   </view>
 
-  <button class="primary-button submit-button" disabled="{{mediaBusy || submitting}}" loading="{{submitting}}" bindtap="submit">{{editingId ? '保存修改' : '收藏这段成长'}}</button>
+  <view class="media-help">已关联{{linkedAssetIds.length}}个素材，未发布的上传素材保留24小时。支持JPEG、PNG、GIF、WebP图片和MOV、MP4视频。</view>
+  <button wx:if="{{mediaEnabled}}" disabled="{{mediaBusy || pending}}" bindtap="resumeUploads">继续上次上传</button>
+  <button wx:if="{{mediaEnabled}}" disabled="{{mediaBusy || pending}}" bindtap="discardUploads">取消待处理上传</button>
+  <view wx:if="{{error}}">{{error}}</view>
+  <button wx:if="{{!ready}}" bindtap="onShow">重新加载</button>
+  <view wx:if="{{pending}}">正在确认上一次提交结果。重试使用相同请求ID和内容，不会重复创建；确认成功前暂不可修改。</view>
+  <button class="primary-button submit-button" disabled="{{mediaBusy || submitting || !ready}}" loading="{{submitting}}" bindtap="submit">{{editingId ? '保存修改' : '收藏这段成长'}}</button>
 </view>
 
 <canvas type="2d" id="compression-canvas" class="compression-canvas" />

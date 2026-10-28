@@ -1,0 +1,76 @@
+{
+  "release_commit": "",
+  "checks": {
+    "stage7_privacy_and_data_deletion": {
+      "passed": false,
+      "checked_at": "",
+      "evidence": ""
+    },
+    "mysql_migrations_and_access_control": {
+      "passed": false,
+      "checked_at": "",
+      "evidence": ""
+    },
+    "cos_upload_export_and_expiry": {
+      "passed": false,
+      "checked_at": "",
+      "evidence": ""
+    },
+    "encrypted_offsite_backup": {
+      "passed": false,
+      "checked_at": "",
+      "evidence": ""
+    },
+    "isolated_restore_and_media": {
+      "passed": false,
+      "checked_at": "",
+      "evidence": ""
+    },
+    "monitor_alert_delivery": {
+      "passed": false,
+      "checked_at": "",
+      "evidence": ""
+    },
+    "cloud_budget_alerts": {
+      "passed": false,
+      "checked_at": "",
+      "evidence": ""
+    },
+    "tls_auto_renewal": {
+      "passed": false,
+      "checked_at": "",
+      "evidence": ""
+    },
+    "icp_and_miniprogram_filing": {
+      "passed": false,
+      "checked_at": "",
+      "evidence": ""
+    },
+    "wechat_categories_privacy_domains": {
+      "passed": false,
+      "checked_at": "",
+      "evidence": ""
+    },
+    "ios_android_two_families_three_accounts": {
+      "passed": false,
+      "checked_at": "",
+      "evidence": ""
+    },
+    "reviewer_invitation_flow": {
+      "passed": false,
+      "checked_at": "",
+      "evidence": ""
+    },
+    "security_updates": {
+      "passed": false,
+      "checked_at": "",
+      "evidence": ""
+    }
+  },
+  "trial": {
+    "passed": false,
+    "started_at": "",
+    "finished_at": "",
+    "evidence": ""
+  }
+}

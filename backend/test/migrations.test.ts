@@ -10,6 +10,31 @@ import { createMigrationDataSource } from "../src/database/data-source";
 import { execute } from "../src/database/migrate";
 import { InitialSchema1790985600000 } from "../src/database/migrations/1790985600000-initial-schema";
 import { AuthSessions1790985601000 } from "../src/database/migrations/1790985601000-auth-sessions";
+import { FamilyCreation1790985602000 } from "../src/database/migrations/1790985602000-family-creation";
+import { EntryRequests1790985603000 } from "../src/database/migrations/1790985603000-entry-requests";
+
+test("entry request migration protects existing idempotency history", async () => {
+  const queries: string[] = [];
+  const runner = {
+    hasTable: async () => true,
+    query: async (sql: string) => { queries.push(sql); return [{ value: 1 }]; },
+  } as unknown as QueryRunner;
+  const migration = new EntryRequests1790985603000();
+  await assert.rejects(migration.up(runner), /already exists/);
+  assert.equal(queries.length, 0);
+  await assert.rejects(migration.down(runner), /non-empty entry_requests/);
+  assert.deepEqual(queries, ["SELECT 1 FROM entry_requests LIMIT 1"]);
+});
+
+test("opening migration refuses existing or nonempty state without altering historical families", async () => {
+  const sql: string[] = [];
+  const runner = { hasTable: async () => true, query: async (query: string) => { sql.push(query); return [{}]; } } as unknown as QueryRunner;
+  const migration = new FamilyCreation1790985602000();
+  await assert.rejects(migration.up(runner), /already exists/);
+  assert.equal(sql.length, 0);
+  await assert.rejects(migration.down(runner), /non-empty/);
+  assert.deepEqual(sql, ["SELECT 1 FROM family_creation_permissions LIMIT 1"]);
+});
 
 test("migration datasource is explicit and never synchronizes schema on startup", () => {
   assert.throws(() => createMigrationDataSource(undefined), /MIGRATION_DATABASE_URL/);

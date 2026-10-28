@@ -1,5 +1,6 @@
 import { ServiceContainer } from "./contracts";
-import { mockServices } from "./mock-services";
+import { getApiConfig } from "./api-config";
+import { createHttpServices } from "./http-services";
 
-// 腾讯云和后端准备完成后，只需在此处替换为 HttpServiceContainer。
-export const services: ServiceContainer = mockServices;
+export const apiConfig = getApiConfig();
+export const services: ServiceContainer = createHttpServices(apiConfig.baseUrl);

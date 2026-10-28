@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Header, Headers, HttpCode, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Header, Headers, HttpCode, Put, Post, Req, UseGuards } from "@nestjs/common";
+import { Transform } from "class-transformer";
 import { ThrottlerGuard } from "@nestjs/throttler";
-import { IsIn, IsString, Matches, MaxLength } from "class-validator";
+import { IsIn, IsString, Length, Matches, MaxLength } from "class-validator";
 import { AuthService } from "./auth.service";
 import { AuthenticatedRequest, Public } from "./auth.guard";
 
@@ -9,6 +10,12 @@ class WechatLoginDto {
   @Matches(/^[A-Za-z0-9_-]+$/)
   @MaxLength(256)
   code!: string;
+}
+
+class NicknameDto {
+  @Transform(({ value }) => typeof value === "string" ? value.trim() : value)
+  @IsString() @Length(1, 40)
+  nickname!: string;
 }
 
 class DevLoginDto {
@@ -39,6 +46,11 @@ export class AuthController {
   @Get("me")
   @Header("Cache-Control", "no-store")
   me(@Req() request: AuthenticatedRequest) { return { user: request.auth.user }; }
+
+  @Put("me") @Header("Cache-Control", "no-store")
+  nickname(@Req() request: AuthenticatedRequest, @Body() body: NicknameDto) {
+    return this.auth.updateNickname(request.auth.user.id, body.nickname);
+  }
 
   @Post("logout")
   @HttpCode(204)

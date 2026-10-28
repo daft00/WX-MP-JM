@@ -1,0 +1,51 @@
+{
+  "version": "2.0",
+  "statement": [
+    {
+      "effect": "allow",
+      "action": [
+        "name/cos:PostObject",
+        "name/cos:GetObject",
+        "name/cos:HeadObject",
+        "name/cos:DeleteObject"
+      ],
+      "resource": [
+        "qcs::cos:REGION:uid/APPID:BUCKET_WITH_APPID/tmp/*"
+      ]
+    },
+    {
+      "effect": "allow",
+      "action": [
+        "name/cos:GetObject",
+        "name/cos:HeadObject",
+        "name/cos:PutObject",
+        "name/cos:DeleteObject"
+      ],
+      "resource": [
+        "qcs::cos:REGION:uid/APPID:BUCKET_WITH_APPID/media/*"
+      ]
+    },
+    {
+      "effect": "allow",
+      "action": [
+        "name/ci:GenerateMediaInfo",
+        "name/ci:GenerateSnapshot"
+      ],
+      "resource": [
+        "qcs::ci:REGION:uid/APPID:bucket/BUCKET_WITH_APPID/*"
+      ]
+    },
+    {
+      "effect": "allow",
+      "action": [
+        "name/cos:GetObject",
+        "name/cos:HeadObject",
+        "name/cos:PutObject",
+        "name/cos:DeleteObject"
+      ],
+      "resource": [
+        "qcs::cos:REGION:uid/APPID:BUCKET_WITH_APPID/exports/*"
+      ]
+    }
+  ]
+}

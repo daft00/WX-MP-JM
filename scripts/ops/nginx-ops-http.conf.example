@@ -1,0 +1,6 @@
+# Place log_format in nginx's http context, not inside server/location.
+# No URI, query, IP, cookies, Authorization or request body.
+log_format growth_ops '$msec $status $request_time';
+# Add the following inside the existing HTTPS server block after reviewing it:
+# access_log /var/log/nginx/growth-diary-ops.log growth_ops;
+# Ensure all API/browser proxy locations inherit this log (no access_log off).

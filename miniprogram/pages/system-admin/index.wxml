@@ -1,47 +1,86 @@
-<view class="admin-page" wx:if="{{dashboard}}">
+<view class="admin-page">
   <view class="admin-hero">
     <text class="admin-kicker">SYSTEM ADMIN</text>
     <text class="admin-title">系统管理中心</text>
-    <text class="admin-subtitle">查看全局运行情况，维护家庭成员权限。</text>
+    <text class="admin-subtitle">查看全局数据概览</text>
   </view>
-
-  <view class="privacy-banner">系统管理员默认只查看统计与成员关系，不直接读取宝宝照片和视频。</view>
-
-  <view class="stats-grid">
-    <view class="stat-card"><text>{{dashboard.familyCount}}</text><text>家庭</text></view>
-    <view class="stat-card"><text>{{dashboard.userCount}}</text><text>用户</text></view>
-    <view class="stat-card"><text>{{dashboard.childCount}}</text><text>宝宝</text></view>
-    <view class="stat-card"><text>{{dashboard.entryCount}}</text><text>记录</text></view>
-    <view class="stat-card"><text>{{dashboard.assetCount}}</text><text>素材</text></view>
-  </view>
-
-  <text class="section-title">全部家庭</text>
-  <view wx:for="{{families}}" wx:key="id" class="family-admin-card">
-    <view class="family-admin-head">
-      <view>
-        <text class="family-admin-name">{{item.family.name}}</text>
-        <text class="family-admin-meta">创建者 {{item.ownerName}} · {{item.childCount}}位宝宝 · {{item.entryCount}}条记录 · {{item.assetCount}}个素材</text>
-      </view>
-      <text class="member-count">{{item.members.length}}人</text>
+  <view class="privacy-banner">系统管理员权限仅用于管理操作，不自动获得家庭记录、照片和视频的访问权。</view>
+  <view wx:if="{{loading}}" class="status-card">正在加载概览…</view>
+  <view wx:elif="{{error}}" class="status-card">{{error}}</view>
+  <block wx:elif="{{dashboard}}">
+    <view class="stats-grid">
+      <view class="stat-card"><text>{{dashboard.familyCount}}</text><text>家庭</text></view>
+      <view class="stat-card"><text>{{dashboard.userCount}}</text><text>用户</text></view>
+      <view class="stat-card"><text>{{dashboard.childCount}}</text><text>宝宝</text></view>
+      <view class="stat-card"><text>{{dashboard.entryCount}}</text><text>记录</text></view>
+      <view class="stat-card"><text>{{dashboard.assetCount}}</text><text>素材</text></view>
     </view>
-    <view class="admin-member-list">
-      <view wx:for="{{item.members}}" wx:for-item="member" wx:key="id" class="admin-member-row" data-family="{{item.family.id}}" data-member="{{member.id}}" bindtap="manageMember">
-        <view class="admin-member-avatar">{{member.user.avatarText}}</view>
-        <text class="admin-member-name">{{member.user.nickname}}</text>
-        <text class="admin-role role-{{member.role}}">{{member.roleLabel}}</text>
-        <text wx:if="{{member.canManage}}" class="admin-manage">管理 ›</text>
+    <text class="stats-note">素材数量包含上传处理中及待清理的数据，不代表已占用空间。</text>
+    <text class="stats-note">最近更新：{{updatedAt}}</text>
+  </block>
+  <button loading="{{loading}}" disabled="{{loading}}" bindtap="loadDashboard">{{error ? '重试' : '刷新概览'}}</button>
+  <view wx:if="{{dashboard}}" class="admin-list">
+    <view class="list-tabs">
+      <button data-kind="families" bindtap="chooseList" type="{{listKind === 'families' ? 'primary' : 'default'}}">家庭列表</button>
+      <button data-kind="users" bindtap="chooseList" type="{{listKind === 'users' ? 'primary' : 'default'}}">用户列表</button>
+    </view>
+    <view class="list-tabs">
+      <button data-kind="MEDIA" bindtap="chooseList" type="{{listKind === 'MEDIA' ? 'primary' : 'default'}}">媒体异常</button>
+      <button data-kind="EXPORT" bindtap="chooseList" type="{{listKind === 'EXPORT' ? 'primary' : 'default'}}">导出异常</button>
+      <button data-kind="DELETION" bindtap="chooseList" type="{{listKind === 'DELETION' ? 'primary' : 'default'}}">删除异常</button>
+    </view>
+    <button data-kind="audits" bindtap="chooseList" type="{{listKind === 'audits' ? 'primary' : 'default'}}">审计记录</button>
+    <view wx:if="{{listKind === 'quota'}}" class="status-card">
+      <text>配额管理：{{memberFamilyName}}</text>
+      <text class="list-id" selectable="true">家庭ID：{{memberFamilyId}}</text>
+      <block wx:if="{{quota}}">
+        <text wx:for="{{quotaLines}}" wx:key="*this" class="stats-note">{{item}}</text>
+        <text class="stats-note">{{quota.enabled ? '媒体存储已启用' : '媒体存储尚未启用，调整配额不会启用上传'}}</text>
+        <text class="stats-note">预留包含上传与临时文件占用，实际清理后才释放。此配额不是腾讯云账单上限。</text>
+        <input class="audit-input" type="number" aria-label="新配额MiB" placeholder="新配额（整数MiB，1024 MiB = 1 GiB）" value="{{quotaMiB}}" bindinput="quotaInput" maxlength="7" disabled="{{retrying || listLoading}}" />
+        <button bindtap="saveQuota" disabled="{{retrying || listLoading}}" loading="{{retrying}}">调整配额</button>
+      </block>
+    </view>
+    <view wx:if="{{listKind === 'members'}}" class="status-card">
+      <text>成员维护：{{memberFamilyName}}</text>
+      <text class="list-id" selectable="true">家庭ID：{{memberFamilyId}}</text>
+      <text class="stats-note">不能修改家庭创建者或自己的成员身份；所有变更需填写原因并确认。</text>
+    </view>
+    <view wx:if="{{listKind === 'audits'}}" class="status-card">
+      <text class="stats-note">以下条件可留空；点击应用后生效，翻页沿用已应用条件。时间为UTC。</text>
+      <input class="audit-input" aria-label="家庭ID筛选" placeholder="家庭ID（可选）" value="{{auditFamily}}" data-field="auditFamily" bindinput="auditInput" maxlength="36" />
+      <input class="audit-input" aria-label="操作者ID筛选" placeholder="操作者ID（可选）" value="{{auditActor}}" data-field="auditActor" bindinput="auditInput" maxlength="36" />
+      <input class="audit-input" aria-label="操作代码筛选" placeholder="操作代码，如 SYSTEM_MEMBER_ROLE" value="{{auditAction}}" data-field="auditAction" bindinput="auditInput" maxlength="80" />
+      <button bindtap="applyAuditFilter">应用筛选</button><button bindtap="clearAuditFilter">清空筛选</button>
+    </view>
+    <text wx:if="{{listKind === 'MEDIA' || listKind === 'EXPORT' || listKind === 'DELETION'}}" class="stats-note">包含失败、长期处理中或待清理任务；时间以UTC显示。刷新仅查询状态，不执行任务。</text>
+    <view wx:if="{{actionMessage}}" class="status-card">{{actionMessage}}</view>
+    <button disabled="{{listLoading || retrying}}" bindtap="refreshList">{{listKind === 'quota' ? '刷新配额' : (listPage ? '刷新列表' : '加载列表')}}</button>
+    <view wx:if="{{listLoading}}" class="status-card">正在加载列表…</view>
+    <view wx:elif="{{listError}}" class="status-card">
+      <text>{{listError}}</text><button bindtap="retryList">重试当前页</button>
+    </view>
+    <block wx:elif="{{listPage && listKind !== 'quota'}}">
+      <view wx:if="{{!rows.length}}" class="status-card">本页暂无数据，可刷新列表。</view>
+      <view wx:for="{{rows}}" wx:key="id" class="list-card">
+        <text class="list-name">{{item.name}}</text>
+        <text class="list-detail" selectable="true">{{item.detail}}</text>
+        <button wx:if="{{listKind === 'families'}}" data-id="{{item.id}}" bindtap="openQuota">管理配额</button>
+        <button wx:if="{{listKind === 'families'}}" data-id="{{item.id}}" bindtap="openMembers">维护成员</button>
+        <block wx:if="{{listKind === 'members' && item.canManage}}">
+          <button data-id="{{item.id}}" data-action="role" disabled="{{retrying || listLoading}}" bindtap="maintainMember">{{item.role === 'ADMIN' ? '设为普通成员' : '设为管理员'}}</button>
+          <button data-id="{{item.id}}" data-action="remove" disabled="{{retrying || listLoading}}" bindtap="maintainMember">移除成员</button>
+        </block>
+        <text wx:if="{{item.guidance}}" class="list-detail">{{item.guidance}}</text>
+        <button wx:if="{{item.canRetry}}" data-id="{{item.id}}" disabled="{{retrying || listLoading}}" bindtap="retryTask">重新排队</button>
+        <text class="list-id" selectable="true">ID：{{item.id}}</text>
       </view>
+    </block>
+    <view wx:if="{{listPage && listKind !== 'quota'}}" class="pagination">
+      <button disabled="{{listLoading || retrying || listPage <= 1}}" bindtap="previousPage">上一页</button>
+      <text>第 {{listPage}} 页</text>
+      <button disabled="{{listLoading || retrying || listError || !hasMore}}" bindtap="nextPage">下一页</button>
     </view>
   </view>
-
-  <text class="section-title">全部用户</text>
-  <view class="user-admin-card">
-    <view wx:for="{{dashboard.users}}" wx:key="user.id" class="user-admin-row">
-      <view class="admin-member-avatar">{{item.user.avatarText}}</view>
-      <view class="user-admin-copy">
-        <text>{{item.user.nickname}}<text wx:if="{{item.user.systemRole === 'SYSTEM_ADMIN'}}" class="system-badge">系统管理员</text></text>
-        <text>加入 {{item.familyCount}} 个家庭 · 发布 {{item.entryCount}} 条记录</text>
-      </view>
-    </view>
-  </view>
+  <button bindtap="returnToFamilies">返回家庭选择</button>
 </view>

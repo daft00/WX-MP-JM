@@ -3,7 +3,7 @@ export type Role = "OWNER" | "ADMIN" | "MEMBER";
 export type EntryKind = "DIARY" | "MILESTONE";
 export type AssetKind = "IMAGE" | "VIDEO";
 export type MetricType = "HEIGHT" | "WEIGHT" | "HEAD";
-export type ExportStatus = "PENDING" | "PROCESSING" | "READY" | "DOWNLOADED" | "CONFIRMED";
+export type ExportStatus = "PENDING" | "PROCESSING" | "READY" | "DOWNLOADED" | "CONFIRMED" | "FAILED" | "EXPIRED" | "CANCELLED";
 
 export interface User {
   id: Id;
@@ -92,6 +92,9 @@ export interface Invite {
 }
 
 export interface ExportJob {
+  parts?: { number: number; sizeBytes: number }[];
+  progress?: number;
+  error?: string;
   id: Id;
   familyId: Id;
   childId: Id;
@@ -108,13 +111,17 @@ export interface ExportJob {
   confirmedAt?: string;
 }
 
-export interface Session {
+export interface IdentitySession {
   user: User;
+}
+
+export interface Session extends IdentitySession {
   family: Family;
   membership: FamilyMember;
 }
 
 export interface EntryDraft {
+  requestId?: string;
   id?: Id;
   childId: Id;
   kind: EntryKind;
@@ -181,6 +188,4 @@ export interface SystemAdminDashboard {
   childCount: number;
   entryCount: number;
   assetCount: number;
-  families: SystemFamilyOverview[];
-  users: SystemUserOverview[];
 }

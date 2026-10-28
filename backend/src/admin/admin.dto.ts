@@ -19,3 +19,7 @@ export class AdminReasonDto {
 export class AdminRoleDto extends AdminReasonDto {
   @IsIn(["ADMIN", "MEMBER"]) role!: "ADMIN" | "MEMBER";
 }
+
+export class FailedTaskQueryDto extends AdminPageDto {
+  @IsIn(["MEDIA", "EXPORT", "DELETION"]) kind: "MEDIA" | "EXPORT" | "DELETION" = "MEDIA";
+}

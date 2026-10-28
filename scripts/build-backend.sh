@@ -17,6 +17,8 @@ done
 cd -- "$output"
 # npm and tests receive no production credentials. The repo's .env files are not copied.
 unset NODE_ENV MYSQL_URL MIGRATION_DATABASE_URL TEST_MYSQL_URL TEST_MIGRATION_DATABASE_URL
+unset GOVERNANCE_ENABLED LEGAL_OPERATOR LEGAL_CONTACT LEGAL_RETENTION_NOTE
+unset EXPORT_PUBLIC_ORIGIN MEDIA_ENABLED COS_BUCKET COS_REGION COS_SECRET_ID COS_SECRET_KEY COS_SIM_URL GROWTH_SIM_URL
 export NODE_OPTIONS=--max-old-space-size=768
 npm ci --include=dev --no-audit --no-fund
 npm run check

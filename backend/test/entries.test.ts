@@ -48,7 +48,7 @@ test("edit permission matrix preserves the original author; only administrators 
     for (const own of [true, false]) {
       const original = { ...row, creator_id: own ? user : randomUUID() };
       const allowed = own || role !== "MEMBER";
-      const { service, calls } = fixture([...access(role), [original], [{ id: child }], {}, {}, {}, {}, [original], [], []]);
+      const { service, calls } = fixture([...access(role), [original], [{ id: child }], {}, {}, {}, {}, {}, [original], [], []]);
       if (allowed) {
         const result = await service.save(user, family, draft, entry);
         assert.equal(result.creatorId, original.creator_id);
@@ -60,13 +60,14 @@ test("edit permission matrix preserves the original author; only administrators 
         assert.equal(calls.length, 3);
       }
     }
-    const deletion = fixture([...access(role), [row], {}, {}, {}]);
+    const deletion = fixture([...access(role), [row], [], [], {}, {}, {}, {}, {}, {}, {}]);
     if (role === "MEMBER") await assert.rejects(deletion.service.remove(user, family, entry), status(403));
     else {
       await deletion.service.remove(user, family, entry);
-      assert.match(deletion.calls[3].sql, /DELETING/);
-      assert.deepEqual(deletion.calls[4].params, [family, entry]);
-      assert.equal(deletion.calls[5].params[3], "ENTRY_DELETE");
+      assert.ok(deletion.calls.some(c => c.sql.includes("DELETING")));
+      assert.ok(deletion.calls.some(c => c.sql.includes("data_requests SET status")));
+      assert.deepEqual(deletion.calls.find(c => c.sql.startsWith("DELETE FROM entries"))!.params, [family, entry]);
+      assert.equal(deletion.calls.at(-1)!.params[3], "ENTRY_DELETE");
     }
   }
 });
@@ -91,7 +92,7 @@ test("assets must be ready, scoped, owned or retained, and cannot be reused by a
     assert.deepEqual(calls[3].params, [family, child, asset]);
     assert.ok(calls.every((call) => call.sql.startsWith("SELECT")));
   }
-  const retained = fixture([...access("ADMIN"), [row], [{ id: child }], [{ creator_id: randomUUID(), status: "READY", kind: "IMAGE", size_bytes: 100, entry_id: entry }], {}, {}, {}, {}, {}, [row], [], [{ entry_id: entry, asset_id: asset }]]);
+  const retained = fixture([...access("ADMIN"), [row], [{ id: child }], [{ creator_id: randomUUID(), status: "READY", kind: "IMAGE", size_bytes: 100, entry_id: entry }], {}, {}, {}, {}, {}, {}, [row], [], [{ entry_id: entry, asset_id: asset }]]);
   assert.deepEqual((await retained.service.save(user, family, { ...draft, assetIds: [asset] }, entry)).assetIds, [asset]);
 });
 
@@ -129,6 +130,29 @@ test("entry cursor pagination uses date and ID, validates scope, and limits hydr
   assert.deepEqual(tail.calls[3].params, [family, child, "HEIGHT", row.occurred_at, row.occurred_at, metric.id, 2]);
 });
 
+test("year filtering precedes LIMIT and binds cursors to year; years cover the entire child", async () => {
+  const f = fixture([...access(), [{ id: child }], [row, row], [], []]);
+  const first = await f.service.list(user, family, { childId: child, year: "2024", pageSize: 1 });
+  assert.match(f.calls[3].sql, /occurred_at >= \? AND occurred_at <= \?.*ORDER BY.*LIMIT/);
+  assert.deepEqual(f.calls[3].params, [family, child, "2024-01-01 00:00:00.000", "2024-12-31 23:59:59.999", 2]);
+  await assert.rejects(fixture([...access(), [{ id: child }]]).service.list(user, family, { childId: child, year: "2025", pageSize: 1, cursor: first.nextCursor }), status(400));
+  assert.deepEqual(await fixture([...access(), [{ id: child }], [{ year: 2025 }, { year: 2024 }]]).service.years(user, family, child), ["2025", "2024"]);
+});
+
+test("request ID creates once, rejects changed content, and cannot resurrect a deleted entry", async () => {
+  const requestId = randomUUID();
+  const f = fixture([...access(), [], [{ id: child }], {}, {}, {}, [row], [], []]);
+  await f.service.save(user, family, { ...draft, requestId });
+  const call = f.calls.find((item) => item.sql.startsWith("INSERT INTO entry_requests"))!;
+  assert.deepEqual(call.params.slice(0, 3), [family, user, requestId]);
+  const ledger = { body_hash: call.params[3], entry_id: entry };
+  const again = fixture([...access(), [ledger], [row], [], []]);
+  assert.equal((await again.service.save(user, family, { ...draft, requestId })).id, entry);
+  assert.ok(again.calls.every((item) => item.sql.startsWith("SELECT")));
+  await assert.rejects(fixture([...access(), [ledger]]).service.save(user, family, { ...draft, requestId, title: "不同内容" }), status(409));
+  await assert.rejects(fixture([...access(), [ledger], []]).service.save(user, family, { ...draft, requestId }), status(404));
+});
+
 test("HTTP entry DTOs reject invalid dates, precision, identities, arrays and unbounded queries", async () => {
   process.env.NODE_ENV = "test";
   process.env.MYSQL_URL = "mysql://user:test@127.0.0.1/db";
@@ -137,7 +161,7 @@ test("HTTP entry DTOs reject invalid dates, precision, identities, arrays and un
   const calls: unknown[][] = [];
   const record = async (...args: unknown[]) => { calls.push(args); return {}; };
   const module = await Test.createTestingModule({ imports: [AppModule] })
-    .overrideProvider(EntriesService).useValue({ list: record, get: record, metrics: record, save: record, remove: async (...args: unknown[]) => { calls.push(args); } })
+    .overrideProvider(EntriesService).useValue({ list: record, years: record, get: record, metrics: record, save: record, remove: async (...args: unknown[]) => { calls.push(args); } })
     .overrideProvider(AuthService).useValue({ authenticate: async (header: string) => {
       if (header !== "Bearer test") throw new HttpException("Authentication required", 401);
       return { user: { id: user, systemRole: "SYSTEM_ADMIN" } };
@@ -150,7 +174,7 @@ test("HTTP entry DTOs reject invalid dates, precision, identities, arrays and un
     const request = (method: string, path: string, body?: unknown) => fetch(base + path, { method,
       headers: { Authorization: "Bearer test", "Content-Type": "application/json" }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
     for (const [method, path] of [["GET", "/entries"], ["GET", `/entries/${entry}`], ["GET", "/metrics"], ["POST", "/entries"], ["PUT", `/entries/${entry}`], ["DELETE", `/entries/${entry}`]]) assert.equal((await fetch(base + path, { method })).status, 401);
-    const created = await request("POST", "/entries", { ...draft, title: " 标题 ", metricType: "HEIGHT", metricValue: 12.125 });
+    const created = await request("POST", "/entries", { ...draft, requestId: randomUUID(), title: " 标题 ", metricType: "HEIGHT", metricValue: 12.125 });
     assert.equal(created.status, 201);
     assert.equal(created.headers.get("cache-control"), "no-store");
     assert.equal(calls[0][0], user);
@@ -167,7 +191,10 @@ test("HTTP entry DTOs reject invalid dates, precision, identities, arrays and un
       { metricType: null }, { metricValue: null }, { customEvent: null }, { customEvent: "a".repeat(101) },
       { assetIds: [asset, asset] }, { assetIds: ["/tmp/file"] }, { assetIds: null }, { assetIds: Array.from({ length: 10 }, () => randomUUID()) },
       { creatorId: user }, { familyId: family }, { id: entry }, { unit: "kg" }].map((change) => ({ ...draft, ...change }))];
-    for (const body of invalid) for (const method of ["POST", "PUT"]) assert.equal((await request(method, method === "POST" ? "/entries" : `/entries/${entry}`, body)).status, 400, JSON.stringify(body));
+    for (const body of invalid) for (const method of ["POST", "PUT"]) assert.equal((await request(method, method === "POST" ? "/entries" : `/entries/${entry}`, method === "POST" ? { ...body, requestId: randomUUID() } : body)).status, 400, JSON.stringify(body));
+    assert.equal((await request("POST", "/entries", draft)).status, 400);
+    assert.equal((await request("GET", "/entries?year=24")).status, 400);
+    assert.equal((await request("GET", "/entries/years")).status, 400);
     for (const path of ["/entries/bad", "/entries?pageSize=201", "/entries?pageSize=0", "/entries?pageSize=1.5", "/entries?pageSize[]=1", "/entries?cursor=", "/entries?unknown=1", "/metrics?type=HEIGHT", `/metrics?childId=${child}`, `/metrics?childId=${child}&type=OTHER`]) assert.equal((await request("GET", path)).status, 400, path);
     assert.equal(calls.length, count);
   } finally { await app.close(); }
@@ -181,7 +208,7 @@ test("asset byte limits include the exact boundary and reject invalid metadata b
       const accepted = Number(size) === limit;
       const { service, calls } = fixture([...access("ADMIN"), [row], [{ id: child }],
         [{ creator_id: user, status: "READY", kind, size_bytes: size, entry_id: entry }],
-        {}, {}, {}, {}, {}, [row], [], [{ entry_id: entry, asset_id: asset }]]);
+        {}, {}, {}, {}, {}, {}, [row], [], [{ entry_id: entry, asset_id: asset }]]);
       if (accepted) await service.save(user, family, { ...draft, assetIds: [asset] }, entry);
       else {
         await assert.rejects(service.save(user, family, { ...draft, assetIds: [asset] }, entry), status(400));

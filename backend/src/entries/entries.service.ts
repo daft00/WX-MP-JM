@@ -1,5 +1,6 @@
+import { beginEntryDeletion } from "../governance/deletion.service";
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { EntityManager } from "typeorm";
 import { DatabaseService } from "../database/database.service";
 import { FamiliesService } from "../families/families.service";
@@ -59,13 +60,27 @@ export class EntriesService {
     return this.database.transaction(async (manager) => {
       await this.families.requireMember(manager, familyId, userId);
       if (query.childId) await this.requireChild(manager, familyId, query.childId);
-      const scope = `entries:${familyId}:${query.childId ?? ""}`, cursor = decodeCursor(query.cursor, scope);
+      const scope = `entries:${familyId}:${query.childId ?? ""}:${query.year ?? ""}`, cursor = decodeCursor(query.cursor, scope);
       const where = ["family_id = ?"], params: unknown[] = [familyId];
       if (query.childId) { where.push("child_id = ?"); params.push(query.childId); }
+      if (query.year) {
+        where.push("occurred_at >= ? AND occurred_at <= ?");
+        params.push(`${query.year}-01-01 00:00:00.000`, `${query.year}-12-31 23:59:59.999`);
+      }
       if (cursor) { where.push("(occurred_at < ? OR (occurred_at = ? AND id < ?))"); params.push(cursor.date, cursor.date, cursor.id); }
       const rows: EntryRow[] = await manager.query(`SELECT * FROM entries WHERE ${where.join(" AND ")} ORDER BY occurred_at DESC, id DESC LIMIT ?`, [...params, query.pageSize + 1]);
       const page = rows.slice(0, query.pageSize), last = page.at(-1);
       return { items: await this.views(manager, familyId, page), ...(rows.length > query.pageSize && last ? { nextCursor: encodeCursor(scope, last.occurred_at, last.id) } : {}) };
+    });
+  }
+
+  years(userId: string, familyId: string, childId: string) {
+    return this.database.transaction(async (manager) => {
+      await this.families.requireMember(manager, familyId, userId);
+      await this.requireChild(manager, familyId, childId);
+      const rows: { year: number | string }[] = await manager.query(
+        "SELECT DISTINCT YEAR(occurred_at) AS year FROM entries WHERE family_id = ? AND child_id = ? ORDER BY year DESC", [familyId, childId]);
+      return rows.map((row) => String(row.year));
     });
   }
 
@@ -76,23 +91,38 @@ export class EntriesService {
     });
   }
 
-  metrics(userId: string, familyId: string, query: MetricQueryDto) {
+  metrics(userId: string, familyId: string, query: Omit<MetricQueryDto, "order"> & { order?: "ASC" | "DESC" }) {
     return this.database.transaction(async (manager) => {
       await this.families.requireMember(manager, familyId, userId);
       await this.requireChild(manager, familyId, query.childId);
-      const scope = `metrics:${familyId}:${query.childId}:${query.type}`, cursor = decodeCursor(query.cursor, scope);
+      const order = query.order === "DESC" ? "DESC" : "ASC";
+      const comparison = order === "DESC" ? "<" : ">";
+      const scope = `metrics:${familyId}:${query.childId}:${query.type}:${order}`, cursor = decodeCursor(query.cursor, scope);
       const params: unknown[] = [familyId, query.childId, query.type];
       if (cursor) params.push(cursor.date, cursor.date, cursor.id);
       const rows: MetricRow[] = await manager.query(`SELECT * FROM metrics WHERE family_id = ? AND child_id = ? AND type = ?
-        ${cursor ? "AND (measured_at > ? OR (measured_at = ? AND id > ?))" : ""} ORDER BY measured_at, id LIMIT ?`, [...params, query.pageSize + 1]);
+        ${cursor ? `AND (measured_at ${comparison} ? OR (measured_at = ? AND id ${comparison} ?))` : ""} ORDER BY measured_at ${order}, id ${order} LIMIT ?`, [...params, query.pageSize + 1]);
       const page = rows.slice(0, query.pageSize), last = page.at(-1);
       return { items: page.map(metricView), ...(rows.length > query.pageSize && last ? { nextCursor: encodeCursor(scope, last.measured_at, last.id) } : {}) };
     });
   }
 
-  save(userId: string, familyId: string, draft: SaveEntryDto, entryId?: string) {
+  save(userId: string, familyId: string, draft: SaveEntryDto & { requestId?: string }, entryId?: string) {
     return this.database.transaction(async (manager) => {
       const { actor } = await this.families.requireMember(manager, familyId, userId);
+      const requestId = !entryId ? draft.requestId : undefined;
+      const bodyHash = createHash("sha256").update(JSON.stringify([
+        draft.childId, draft.kind, draft.title.trim(), draft.body.trim(), draft.occurredAt,
+        draft.assetIds, draft.customEvent || null, draft.metricType || null, draft.metricValue ?? null,
+      ])).digest("hex");
+      if (requestId) {
+        // 家庭行锁串行化同一请求；账本不随记录删除，重试不会复活已删除记录。
+        const requests = await manager.query("SELECT body_hash, entry_id FROM entry_requests WHERE family_id = ? AND creator_id = ? AND request_id = ?", [familyId, userId, requestId]);
+        if (requests[0]) {
+          if (requests[0].body_hash !== bodyHash) throw new ConflictException("Request ID reused with different content");
+          return (await this.views(manager, familyId, [await this.find(manager, familyId, requests[0].entry_id)]))[0];
+        }
+      }
       const original = entryId ? await this.find(manager, familyId, entryId) : undefined;
       if (original && actor.role === "MEMBER" && original.creator_id !== userId) throw new ForbiddenException("Only the author or family administrators can edit");
       await this.requireChild(manager, familyId, draft.childId);
@@ -111,6 +141,9 @@ export class EntriesService {
         if (!Number.isSafeInteger(size) || size <= 0 || size > limit) throw new BadRequestException("Images must be at most 10MB and videos at most 50MB");
       }
       if (original) {
+        // 解绑后重新计算24小时保留期，避免刚移除的旧素材立即被清理。
+        await manager.query(`UPDATE assets a JOIN entry_assets ea ON ea.asset_id = a.id SET a.updated_at = UTC_TIMESTAMP(3)
+          WHERE ea.family_id = ? AND ea.entry_id = ?`, [familyId, id]);
         // 复合外键要求先移除旧关联；同一事务内重建，失败时全部恢复。
         await manager.query("DELETE FROM entry_assets WHERE family_id = ? AND entry_id = ?", [familyId, id]);
         await manager.query("DELETE FROM metrics WHERE family_id = ? AND entry_id = ?", [familyId, id]);
@@ -124,20 +157,12 @@ export class EntriesService {
       if (draft.metricType !== undefined) await manager.query("INSERT INTO metrics (id, family_id, child_id, creator_id, entry_id, type, value, unit, measured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [randomUUID(), familyId, draft.childId, creator, id, draft.metricType, draft.metricValue, draft.metricType === "WEIGHT" ? "kg" : "cm", new Date(`${draft.occurredAt}T00:00:00Z`)]);
       await this.families.audit(manager, userId, familyId, original ? "ENTRY_UPDATE" : "ENTRY_CREATE", "entry", id);
+      if (requestId) await manager.query("INSERT INTO entry_requests (family_id, creator_id, request_id, body_hash, entry_id) VALUES (?, ?, ?, ?, ?)", [familyId, userId, requestId, bodyHash, id]);
       return (await this.views(manager, familyId, [await this.find(manager, familyId, id)]))[0];
     });
   }
 
   remove(userId: string, familyId: string, id: string) {
-    return this.database.transaction(async (manager) => {
-      const { actor } = await this.families.requireMember(manager, familyId, userId);
-      if (actor.role !== "OWNER" && actor.role !== "ADMIN") throw new ForbiddenException("Only family administrators can permanently delete entries");
-      await this.find(manager, familyId, id);
-      // 数据库删除不等于 COS 删除；DELETING 状态留给后续媒体清理任务处理。
-      await manager.query(`UPDATE assets a JOIN entry_assets ea ON ea.asset_id = a.id SET a.status = 'DELETING'
-        WHERE ea.family_id = ? AND ea.entry_id = ?`, [familyId, id]);
-      await manager.query("DELETE FROM entries WHERE family_id = ? AND id = ?", [familyId, id]);
-      await this.families.audit(manager, userId, familyId, "ENTRY_DELETE", "entry", id);
-    });
+    return this.database.transaction(manager => beginEntryDeletion(manager, this.families, userId, familyId, id));
   }
 }

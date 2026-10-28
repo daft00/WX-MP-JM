@@ -1,0 +1,5 @@
+simulation: media
+routing: path
+mocks:
+  - routeKey: cos
+    path: ../mocks/cos/default.js

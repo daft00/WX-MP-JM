@@ -1,70 +1,81 @@
 <view class="select-page" style="padding-top: calc({{contentTop}}px + 34rpx);">
   <view class="soft-orb orb-one"></view>
   <view class="soft-orb orb-two"></view>
-
   <view class="select-header">
     <view class="brand-mark">长</view>
     <view class="brand-copy"><text>成长日记</text><text>GROWTH DIARY</text></view>
-    <view wx:if="{{session}}" class="user-chip">{{session.user.avatarText}} · {{session.user.nickname}}</view>
+    <view wx:if="{{session}}" class="user-chip">{{session.user.nickname}}</view>
   </view>
-
-  <view wx:if="{{step === 'FAMILY'}}" class="select-content">
-    <view class="account-switch">
-      <text>演示账号</text>
-      <view class="account-list">
-        <view wx:for="{{users}}" wx:key="id" class="account-chip {{item.active ? 'active' : ''}}" data-id="{{item.id}}" bindtap="switchUser">
-          {{item.avatarText}} · {{item.nickname}}
+  <view class="select-content">
+    <text class="step-label">{{development ? '开发者工具 · SSH隧道联调' : '家庭空间'}}</text>
+    <text class="select-subtitle">管理家庭、邀请亲友，共同维护宝宝档案。可发布文字、里程碑和成长指标；媒体上传及导出将在后续开放。</text>
+    <view wx:if="{{error}}" class="empty-baby">
+      <text>{{error}}</text>
+      <button disabled="{{loading}}" bindtap="retry">重试</button>
+    </view>
+    <text wx:if="{{loading}}" class="select-subtitle">正在加载，请稍候…</text>
+    <button wx:if="{{!session}}" class="join-button" loading="{{loading}}" disabled="{{loading}}" bindtap="login">微信登录</button>
+    <block wx:else>
+      <button disabled="{{loading}}" data-action="nickname" bindtap="writeAction">修改昵称</button>
+      <button disabled="{{loading}}" bindtap="copyUserId">复制我的用户ID（供开户审批）</button>
+      <button wx:if="{{session.user.systemRole === 'SYSTEM_ADMIN'}}" disabled="{{loading}}" bindtap="openSystemAdmin">管理中心</button>
+      <button wx:if="{{session.user.systemRole === 'SYSTEM_ADMIN'}}" disabled="{{loading}}" data-action="approve" bindtap="writeAction">批准用户开户</button>
+      <button class="outline-button" disabled="{{loading}}" bindtap="logout">退出登录</button>
+      <block wx:if="{{!selectedFamily}}">
+        <text class="select-title">选择<text class="accent">家庭空间</text></text>
+        <button disabled="{{loading}}" bindtap="loadFamilies">刷新家庭列表和开户资格</button>
+        <button wx:if="{{canCreate}}" disabled="{{loading}}" data-action="create" bindtap="writeAction">创建家庭</button>
+        <button disabled="{{loading}}" data-action="join" bindtap="writeAction">输入邀请码加入家庭</button>
+        <view class="family-list">
+          <view wx:for="{{families}}" wx:key="id" class="family-card" data-id="{{item.id}}" bindtap="chooseFamily">
+            <view class="family-copy"><text class="family-name">{{item.name}}</text><text class="family-hint">查看已有宝宝档案</text></view>
+            <text class="arrow">›</text>
+          </view>
         </view>
-      </view>
-    </view>
-    <view wx:if="{{isSystemAdmin}}" class="system-admin-entry" bindtap="openSystemAdmin">
-      <view class="system-admin-icon">管</view>
-      <view class="system-admin-copy">
-        <text>系统管理中心</text>
-        <text>管理全部家庭、用户与成员权限</text>
-      </view>
-      <text class="system-admin-arrow">›</text>
-    </view>
-    <text class="step-label">第一步 · 选择家庭</text>
-    <text class="select-title">今天要进入哪个<text class="accent">家庭空间</text>？</text>
-    <text class="select-subtitle">每个家庭拥有独立的宝宝、成员、记录与素材，数据不会混在一起。</text>
-
-    <view class="family-list">
-      <view wx:for="{{families}}" wx:key="id" class="family-card" data-id="{{item.id}}" bindtap="chooseFamily">
-        <view class="family-icon" style="background: {{item.color}};">{{item.initial}}</view>
-        <view class="family-copy">
-          <text class="family-name">{{item.name}}</text>
-          <text class="family-hint">进入后再选择宝宝</text>
+        <view wx:if="{{!loading && !error && !families.length}}" class="empty-baby">尚未加入家庭，请输入亲友提供的邀请码；创建家庭需要管理员批准。</view>
+      </block>
+      <block wx:else>
+        <button disabled="{{loading}}" bindtap="loadFamilies">返回选择家庭</button>
+        <text class="select-title">{{selectedFamily.name}}</text>
+        <button wx:if="{{role === 'OWNER' || role === 'ADMIN'}}" disabled="{{loading}}" bindtap="editChild">创建宝宝档案</button>
+        <button wx:if="{{role === 'OWNER' || role === 'ADMIN'}}" disabled="{{loading}}" data-action="invite" bindtap="writeAction">生成一次性邀请码</button>
+        <text wx:if="{{inviteCode}}" selectable="true" class="select-subtitle">邀请码：{{inviteCode}}（24小时有效，仅可使用一次）</text>
+        <view class="family-list">
+          <view wx:for="{{members}}" wx:key="id" class="family-card">
+            <view class="family-copy">
+              <text>{{item.user.nickname}} · {{item.role}}</text>
+              <button wx:if="{{role === 'OWNER' && item.role !== 'OWNER' && item.userId !== session.user.id}}" disabled="{{loading}}" data-action="role" data-id="{{item.id}}" bindtap="writeAction">{{item.role === 'ADMIN' ? '设为成员' : '设为管理员'}}</button>
+              <button wx:if="{{item.userId !== session.user.id && item.role !== 'OWNER' && (role === 'OWNER' || (role === 'ADMIN' && item.role === 'MEMBER'))}}" disabled="{{loading}}" data-action="remove" data-id="{{item.id}}" bindtap="writeAction">移出家庭</button>
+            </view>
+          </view>
         </view>
-        <text class="arrow">›</text>
-      </view>
-    </view>
-
-    <button class="outline-button" bindtap="createFamily">＋ 创建新的家庭空间</button>
-    <button class="join-button" bindtap="joinFamily">输入邀请码加入家庭</button>
+        <view wx:if="{{!loading && !error && !children.length}}" class="empty-baby">这个家庭还没有宝宝档案，家庭管理员可创建。</view>
+        <view class="baby-grid">
+          <view wx:for="{{children}}" wx:key="id" class="baby-card" data-id="{{item.id}}" bindtap="chooseChild">
+            <view class="baby-avatar" style="background: {{item.avatarColor}};">宝</view>
+            <text class="baby-name">{{item.name}}</text>
+            <text class="baby-meta">{{item.genderLabel}} · {{item.ageLabel}}</text>
+            <view class="enter-pill">选择并查看档案</view>
+          </view>
+        </view>
+        <view wx:if="{{selectedChild}}" class="empty-baby">
+          <text class="baby-name">已选择：{{selectedChild.name}}</text>
+          <text class="baby-meta">生日：{{selectedChild.birthday}}</text>
+          <button wx:if="{{role === 'OWNER' || role === 'ADMIN'}}" disabled="{{loading}}" data-id="{{selectedChild.id}}" bindtap="editChild">编辑宝宝档案</button>
+          <text class="baby-meta">称呼：{{selectedChild.genderLabel}}</text>
+          <button bindtap="enterWall">进入记录墙</button>
+        </view>
+      </block>
+    </block>
+    <text class="select-subtitle">此版本用于开发验收，请勿作为正式版发布。</text>
   </view>
+</view>
 
-  <view wx:else class="select-content">
-    <view class="back-row" bindtap="backToFamilies">‹ 返回选择家庭</view>
-    <text class="step-label">第二步 · 选择宝宝</text>
-    <text class="select-title">进入<text class="accent">{{selectedFamily.name}}</text>，记录谁的成长？</text>
-    <text class="select-subtitle">进入后可以在当前家庭内随时切换宝宝。</text>
-
-    <view wx:if="{{children.length}}" class="baby-grid">
-      <view wx:for="{{children}}" wx:key="id" class="baby-card" data-id="{{item.id}}" bindtap="chooseChild">
-        <view class="baby-avatar" style="background: {{item.avatarColor}};">{{item.initial}}</view>
-        <text class="baby-name">{{item.name}}</text>
-        <text class="baby-meta">{{item.genderLabel}} · {{item.ageLabel}}</text>
-        <view class="enter-pill">进入记录墙</view>
-      </view>
-    </view>
-
-    <view wx:else class="empty-baby">
-      <text class="empty-icon">🌱</text>
-      <text>这个家庭还没有宝宝档案</text>
-      <button class="primary-button" bindtap="addChild">创建第一个宝宝档案</button>
-    </view>
-  </view>
-
-  <view class="privacy-note">当前为本地演示模式，不会上传真实家庭资料</view>
+<view class="card">
+  <button bindtap="openGovernance">隐私说明 / 数据管理</button>
+  <button wx:if="{{selectedFamily && role !== 'OWNER'}}" disabled="{{loading}}" bindtap="leaveFamily">退出当前家庭</button>
+  <block wx:if="{{role === 'OWNER'}}">
+    <view>转让后你将成为管理员；需要退出时先转让。</view>
+    <button wx:for="{{members}}" wx:key="id" wx:if="{{item.role !== 'OWNER'}}" data-id="{{item.id}}" disabled="{{loading}}" bindtap="transferOwner">转让给 {{item.user.nickname}}</button>
+  </block>
 </view>

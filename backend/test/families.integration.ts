@@ -23,9 +23,15 @@ export async function exerciseFamilies(t: TestContext, runner: QueryRunner, url:
   };
   try {
     for (const id of ids) await runner.query("INSERT INTO users (id, wechat_app_id, wechat_openid, nickname) VALUES (?, 'family-test', ?, '测试用户')", [id, id]);
+    for (const id of [owner, outsider]) await runner.query("INSERT INTO family_creation_permissions (user_id) VALUES (?)", [id]);
     const family = await service.create(owner, "测试家庭甲");
     const otherFamily = await service.create(outsider, "测试家庭乙");
     const ownerMember = (await service.members(owner, family.id))[0];
+    await t.test("unapproved users cannot create; consumed approval cannot create again", async () => {
+      await assert.rejects(service.create(member, "未批准家庭"), rejectStatus(403));
+      await assert.rejects(service.create(owner, "第二个家庭"), rejectStatus(403));
+      assert.equal((await service.creationStatus(owner)).canCreate, false);
+    });
     const inviteAndJoin = async (id: string) => {
       const invitation = await service.createInvite(owner, family.id);
       await service.join(id, invitation.code.toLowerCase());
@@ -133,7 +139,9 @@ export async function exerciseFamilies(t: TestContext, runner: QueryRunner, url:
       await assert.rejects(failingChildren.save(owner, family.id, childDraft), /audit failure/);
       await assert.rejects(failingChildren.save(owner, family.id, { ...childDraft, name: "不应保存" }, before[0].id), /audit failure/);
       assert.deepEqual(await children.list(owner, family.id), before);
-      await assert.rejects(failingService.create(owner, "回滚家庭"), /audit failure/);
+      await runner.query("INSERT INTO family_creation_permissions (user_id) VALUES (?)", [loser]);
+      await assert.rejects(failingService.create(loser, "回滚家庭"), /audit failure/);
+      assert.equal((await runner.query("SELECT used_at FROM family_creation_permissions WHERE user_id = ?", [loser]))[0].used_at, null);
       assert.equal((await service.list(owner)).length, 1);
       const invitation = await service.createInvite(owner, family.id);
       await assert.rejects(failingService.join(loser, invitation.code), /audit failure/);
@@ -141,6 +149,13 @@ export async function exerciseFamilies(t: TestContext, runner: QueryRunner, url:
       await assert.rejects(service.get(loser, family.id), rejectStatus(404));
       await assert.rejects(service.join(owner, invitation.code), rejectStatus(409));
       assert.equal((await runner.query("SELECT used_at FROM invites WHERE id = ?", [invitation.id]))[0].used_at, null);
+    });
+
+    await t.test("one approval allows exactly one concurrent family creation", async () => {
+      const results = await Promise.allSettled([service.create(loser, "并发家庭甲"), service.create(loser, "并发家庭乙")]);
+      assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
+      assert.equal((await runner.query("SELECT id FROM families WHERE owner_id = ?", [loser])).length, 1);
+      assert.equal((await service.creationStatus(loser)).canCreate, false);
     });
 
     await t.test("two different invitations cannot create duplicate memberships for one user", async () => {

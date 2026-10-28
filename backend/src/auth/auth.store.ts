@@ -33,4 +33,11 @@ export class AuthStore {
   async deleteSession(tokenHash: string): Promise<void> {
     await this.database.transaction((manager) => manager.getRepository(AuthSession).delete({ tokenHash }));
   }
+
+  async updateNickname(userId: string, nickname: string) {
+    return this.database.transaction(async (manager) => {
+      await manager.getRepository(User).update({ id: userId }, { nickname });
+      return publicUser(await manager.getRepository(User).findOneByOrFail({ id: userId }));
+    });
+  }
 }

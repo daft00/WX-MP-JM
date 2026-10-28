@@ -1,8 +1,20 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 import { EntityManager } from "typeorm";
 import { DatabaseService } from "../database/database.service";
 import { FamiliesService } from "../families/families.service";
-import { AdminPageDto, AdminRoleDto, AuditQueryDto } from "./admin.dto";
+import { AdminPageDto, AdminRoleDto, AuditQueryDto, FailedTaskQueryDto } from "./admin.dto";
+
+// 只重排现有worker能处理的临时故障；不恢复已失效媒体，也不跳过上传凭证等待期。
+const mediaRetry = `u.deleted = false AND u.last_error = 'PROCESSING_RETRY' AND (
+  (a.status = 'PENDING' AND u.requested = true AND u.expires_at > UTC_TIMESTAMP(3)) OR
+  (u.expires_at < DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 60 SECOND) AND
+    (a.status IN ('DELETING','FAILED') OR (a.status = 'READY' AND u.temp_deleted = false))))`;
+const safeTaskErrors = new Set(["PROCESSING_RETRY", "INVALID_MEDIA", "SNAPSHOT_CHANGED", "RETRY_EXHAUSTED",
+  "CANCELLED", "PERMISSION_REVOKED", "CLEANUP_RETRY", "STORAGE_UNAVAILABLE", "LEGACY_MEDIA_REQUIRES_REVIEW",
+  "MEDIA_LEDGER_REQUIRES_REVIEW", "CLEANING_EXPORTS", "CLEANING_MEDIA", "WAITING_UPLOAD_EXPIRY"]);
+type FailedTaskRow = { id: string; family_id: string; status: string; error: string | null; updated_at: Date;
+  attempts: number | null; next_attempt_at: Date | null; can_retry: number; cleaned: number | null };
 
 type MemberRow = { id: string; family_id: string; user_id: string; role: string; joined_at: Date; nickname: string; avatar_text: string };
 const memberView = (row: MemberRow) => ({ id: row.id, familyId: row.family_id, userId: row.user_id, role: row.role, joinedAt: row.joined_at.toISOString(),
@@ -22,6 +34,51 @@ export class AdminService {
     if (rows[0]?.system_role !== "SYSTEM_ADMIN") throw new ForbiddenException("System administrator required");
   }
 
+  failedTasks(userId: string, query: FailedTaskQueryDto) {
+    return this.database.transaction(async m => {
+      await this.requireAdmin(m, userId);
+      // 仅投影任务元数据，不读取媒体键、签名、记录快照、申请理由或联系方式。
+      const sql = query.kind === "MEDIA" ? `SELECT u.id, u.family_id, a.status, u.last_error AS error,
+        a.updated_at, NULL AS attempts, u.next_attempt_at, (${mediaRetry}) AS can_retry, NULL AS cleaned
+        FROM media_uploads u JOIN assets a ON a.id = u.id
+        WHERE u.deleted = false AND ((u.last_error IS NOT NULL AND (a.status <> 'READY' OR u.temp_deleted = false))
+          OR (a.status IN ('PENDING','DELETING','FAILED') AND a.updated_at < DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 1 DAY)))
+        ORDER BY a.updated_at DESC, u.id DESC LIMIT ? OFFSET ?`
+        : query.kind === "EXPORT" ? `SELECT id, family_id, status, error, updated_at, attempts,
+          NULL AS next_attempt_at, false AS can_retry, cleaned FROM export_tasks
+          WHERE status = 'FAILED' OR (status IN ('PENDING','PROCESSING') AND
+            (error IS NOT NULL OR updated_at < DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 1 DAY)))
+            OR (status IN ('CANCELLED','EXPIRED') AND cleaned = false)
+          ORDER BY updated_at DESC, id DESC LIMIT ? OFFSET ?`
+        : `SELECT id, target_family_id AS family_id, status, last_error AS error, updated_at,
+          NULL AS attempts, NULL AS next_attempt_at, false AS can_retry, NULL AS cleaned FROM data_requests
+          WHERE status = 'PROCESSING' AND (started_at < DATE_SUB(UTC_TIMESTAMP(3), INTERVAL 1 DAY)
+            OR last_error IN ('CLEANUP_RETRY','STORAGE_UNAVAILABLE','LEGACY_MEDIA_REQUIRES_REVIEW','MEDIA_LEDGER_REQUIRES_REVIEW'))
+          ORDER BY updated_at DESC, id DESC LIMIT ? OFFSET ?`;
+      const rows: FailedTaskRow[] = await m.query(sql, bounds(query));
+      return page(rows.map(r => ({ id: r.id, kind: query.kind, familyId: r.family_id, status: r.status,
+        error: r.error ? (safeTaskErrors.has(r.error) ? r.error : "UNKNOWN_ERROR") : "STALLED_OR_PENDING_CLEANUP",
+        updatedAt: r.updated_at.toISOString(), attempts: r.attempts === null ? null : Number(r.attempts),
+        nextAttemptAt: r.next_attempt_at?.toISOString() || null, canRetry: Boolean(Number(r.can_retry)),
+        cleaned: r.cleaned === null ? null : Boolean(Number(r.cleaned)) })), query);
+    });
+  }
+
+  retryMedia(userId: string, id: string, reason: string) {
+    return this.database.transaction(async m => {
+      await this.requireAdmin(m, userId);
+      const [task]: { family_id: string }[] = await m.query("SELECT family_id FROM media_uploads WHERE id = ?", [id]);
+      if (!task) throw new NotFoundException("Task not found");
+      await this.families.lockFamily(m, task.family_id, true);
+      const rows = await m.query(`SELECT u.id FROM media_uploads u JOIN assets a ON a.id = u.id
+        WHERE u.id = ? AND u.family_id = ? AND ${mediaRetry} FOR UPDATE`, [id, task.family_id]);
+      if (!rows.length) throw new ConflictException("Task changed or cannot be retried; refresh first");
+      await m.query("UPDATE media_uploads SET next_attempt_at = UTC_TIMESTAMP(3) WHERE id = ?", [id]);
+      await this.families.audit(m, userId, task.family_id, "SYSTEM_MEDIA_RETRY", "media_upload", id, reason);
+      return { id, scheduled: true };
+    });
+  }
+
   dashboard(userId: string) {
     return this.database.transaction(async (manager) => {
       await this.requireAdmin(manager, userId);
@@ -30,6 +87,21 @@ export class AdminService {
         (SELECT COUNT(*) FROM users) AS userCount, (SELECT COUNT(*) FROM children) AS childCount,
         (SELECT COUNT(*) FROM entries) AS entryCount, (SELECT COUNT(*) FROM assets) AS assetCount`);
       return Object.fromEntries(["familyCount", "userCount", "childCount", "entryCount", "assetCount"].map((key) => [key, Number(rows[0][key])]));
+    });
+  }
+
+  approveFamilyCreation(actorId: string, userId: string, reason: string) {
+    return this.database.transaction(async (manager) => {
+      await this.requireAdmin(manager, actorId);
+      const users = await manager.query("SELECT id FROM users WHERE id = ? FOR UPDATE", [userId]);
+      if (!users.length) throw new NotFoundException("User not found");
+      const owned = await manager.query("SELECT id FROM families WHERE owner_id = ? LIMIT 1", [userId]);
+      const permissions = await manager.query("SELECT used_at FROM family_creation_permissions WHERE user_id = ? FOR UPDATE", [userId]);
+      if (owned.length || permissions[0]?.used_at) throw new ConflictException("Family creation already used");
+      if (!permissions.length) await manager.query("INSERT INTO family_creation_permissions (user_id) VALUES (?)", [userId]);
+      await manager.query("INSERT INTO audit_logs (id, actor_id, action, target_type, target_id, reason) VALUES (?, ?, 'FAMILY_CREATION_APPROVE', 'user', ?, ?)",
+        [randomUUID(), actorId, userId, reason]);
+      return { userId, canCreate: true };
     });
   }
 

@@ -32,9 +32,9 @@ function fixture(replies: unknown[]) {
 
 test("all admin services read current database system role and deny before reading any managed data", async () => {
   for (const roles of [[], [{ system_role: "USER" }]]) {
-    for (const action of ["dashboard", "families", "users", "members", "audits", "role", "remove"]) {
+    for (const action of ["failures", "retry", "dashboard", "families", "users", "members", "audits", "role", "remove"]) {
       const { service, calls } = fixture([roles]);
-      const request = action === "dashboard" ? service.dashboard(actor) : action === "families" ? service.listFamilies(actor, paging) : action === "users" ? service.listUsers(actor, paging) :
+      const request = action === "failures" ? service.failedTasks(actor, { ...paging, kind: "MEDIA" }) : action === "retry" ? service.retryMedia(actor, member, "排查后重试") : action === "dashboard" ? service.dashboard(actor) : action === "families" ? service.listFamilies(actor, paging) : action === "users" ? service.listUsers(actor, paging) :
         action === "members" ? service.members(actor, family, paging) : action === "audits" ? service.audits(actor, paging) : action === "role" ? service.changeRole(actor, family, member, { role: "MEMBER", reason: "维护" }) : service.remove(actor, family, member, "维护");
       await assert.rejects(request, status(403));
       assert.equal(calls.length, 1);
@@ -42,6 +42,17 @@ test("all admin services read current database system role and deny before readi
       assert.deepEqual(calls[0].params, [actor]);
     }
   }
+});
+
+test("opening approval requires live system role, existing user, unused eligibility and an audit", async () => {
+  await assert.rejects(fixture([[{ system_role: "USER" }]]).service.approveFamilyCreation(actor, targetUser, "核实"), status(403));
+  await assert.rejects(fixture([admin, []]).service.approveFamilyCreation(actor, targetUser, "核实"), status(404));
+  await assert.rejects(fixture([admin, [{ id: targetUser }], [{ id: family }], []]).service.approveFamilyCreation(actor, targetUser, "核实"), status(409));
+  await assert.rejects(fixture([admin, [{ id: targetUser }], [], [{ used_at: new Date() }]]).service.approveFamilyCreation(actor, targetUser, "核实"), status(409));
+  const f = fixture([admin, [{ id: targetUser }], [], [], {}, {}]);
+  assert.deepEqual(await f.service.approveFamilyCreation(actor, targetUser, "已核实本人"), { userId: targetUser, canCreate: true });
+  assert.match(f.calls[1].sql, /FOR UPDATE/);
+  assert.deepEqual(f.calls.at(-1)!.params.slice(1), [actor, targetUser, "已核实本人"]);
 });
 
 test("system administration cannot modify owners, self or foreign-family member IDs", async () => {
@@ -114,6 +125,8 @@ test("HTTP admin routes enforce live system authority, DTO limits, no-store and 
   const manager = { query: async (sql: string, params: unknown[] = []) => {
     calls.push({ sql, params });
     if (sql.startsWith("SELECT system_role")) return [{ system_role: currentRole }];
+    if (sql === "SELECT family_id FROM media_uploads WHERE id = ?") return [{ family_id: family }];
+    if (sql.startsWith("SELECT u.id FROM media_uploads") && sql.endsWith("FOR UPDATE")) return [{ id: member }];
     if (sql.includes("AS familyCount")) return [{ familyCount: 1, userCount: 2, childCount: 3, entryCount: 4, assetCount: 5 }];
     if (sql.includes("FROM families WHERE id")) return [{ id: family }];
     if (sql.includes("FROM family_members WHERE")) return [target];
@@ -133,24 +146,79 @@ test("HTTP admin routes enforce live system authority, DTO limits, no-store and 
     await app.listen(0, "127.0.0.1");
     const base = `${await app.getUrl()}/api/v1/admin`, path = `/families/${family}/members/${member}`;
     const request = (method: string, route: string, body?: unknown) => fetch(base + route, { method, headers: { Authorization: "Bearer test", "Content-Type": "application/json" }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
-    const routes = [["GET", "/dashboard"], ["GET", "/families"], ["GET", "/users"], ["GET", "/audit-logs"], ["GET", `/families/${family}/members`], ["PATCH", path], ["DELETE", path]];
+    const routes = [["GET", "/failed-tasks"], ["PUT", `/failed-tasks/media/${member}/retry`], ["GET", "/dashboard"], ["GET", "/families"], ["GET", "/users"], ["GET", "/audit-logs"], ["GET", `/families/${family}/members`], ["PATCH", path], ["PUT", path], ["DELETE", path]];
     for (const [method, route] of routes) {
       assert.equal((await fetch(base + route, { method })).status, 401);
-      assert.equal((await request(method, route, method === "PATCH" ? { role: "MEMBER", reason: "测试" } : method === "DELETE" ? { reason: "测试" } : undefined)).status, 403);
+      assert.equal((await request(method, route, (method === "PATCH" || (method === "PUT" && route === path)) ? { role: "MEMBER", reason: "测试" } : ["DELETE", "PUT"].includes(method) ? { reason: "测试" } : undefined)).status, 403);
     }
     currentRole = "SYSTEM_ADMIN";
     assert.equal((await request("GET", "/dashboard")).headers.get("cache-control"), "no-store");
     assert.equal((await request("PATCH", path, { role: "MEMBER", reason: "  家庭申请  " })).status, 200);
+    assert.equal((await request("PUT", path, { role: "MEMBER", reason: "小程序维护" })).status, 200);
     const audit = calls.find((call) => call.sql.startsWith("INSERT INTO audit_logs"))!;
     assert.equal(audit.params[1], actor);
     assert.equal(audit.params[6], "ADMIN -> MEMBER: 家庭申请");
     assert.equal((await request("DELETE", path, { reason: "本人申请" })).status, 204);
+    for (const kind of ["MEDIA", "EXPORT", "DELETION"]) {
+      const response = await request("GET", `/failed-tasks?kind=${kind}`);
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get("cache-control"), "no-store");
+      assert.deepEqual(await response.json(), { items: [], page: 1, pageSize: 20, hasMore: false });
+    }
+    const scheduled = await request("PUT", `/failed-tasks/media/${member}/retry`, { reason: "  存储恢复  " });
+    assert.equal(scheduled.status, 200);
+    assert.equal(scheduled.headers.get("cache-control"), "no-store");
+    assert.deepEqual(await scheduled.json(), { id: member, scheduled: true });
+    const retryAudit = calls.find(call => call.sql.startsWith("INSERT INTO audit_logs") && call.params.includes("SYSTEM_MEDIA_RETRY"))!;
+    assert.equal(retryAudit.params[1], actor);
+    assert.equal(retryAudit.params[6], "存储恢复");
     const count = calls.length;
+    for (const body of [{}, { reason: " " }, { reason: "测试", status: "READY" }]) {
+      assert.equal((await request("PUT", `/failed-tasks/media/${member}/retry`, body)).status, 400);
+    }
+    assert.equal((await request("PUT", "/failed-tasks/media/bad/retry", { reason: "测试" })).status, 400);
     for (const body of [{ role: "OWNER", reason: "测试" }, { role: "ADMIN" }, { role: "ADMIN", reason: " " }, { role: "ADMIN", reason: null }, { role: "ADMIN", reason: "a".repeat(401) }, { role: "ADMIN", reason: "测试", actorId: targetUser }, { role: "ADMIN", reason: "测试", systemRole: "SYSTEM_ADMIN" }]) assert.equal((await request("PATCH", path, body)).status, 400);
+    for (const body of [{ role: "OWNER", reason: "测试" }, { role: "ADMIN" }, { role: "ADMIN", reason: " " }, { role: "ADMIN", reason: "测试", actorId: targetUser }]) {
+      assert.equal((await request("PUT", path, body)).status, 400);
+    }
     for (const body of [{}, { reason: null }, { reason: " " }, { reason: "测试", role: "ADMIN" }]) assert.equal((await request("DELETE", path, body)).status, 400);
-    for (const route of ["/families?pageSize=101", "/users?page=0", "/users?page=10001", "/users?page=1.5", "/users?unknown=1", "/audit-logs?familyId=bad", "/audit-logs?actorId=bad", "/audit-logs?action=x%27", "/families/bad/members"]) assert.equal((await request("GET", route)).status, 400, route);
+    for (const body of [{}, { reason: " " }, { reason: "核实", systemRole: "SYSTEM_ADMIN" }]) {
+      assert.equal((await request("PUT", `/users/${targetUser}/family-creation`, body)).status, 400);
+    }
+    for (const route of ["/failed-tasks?kind=BAD", "/failed-tasks?pageSize=101", "/failed-tasks?page=0", "/families?pageSize=101", "/users?page=0", "/users?page=10001", "/users?page=1.5", "/users?unknown=1", "/audit-logs?familyId=bad", "/audit-logs?actorId=bad", "/audit-logs?action=x%27", "/families/bad/members"]) assert.equal((await request("GET", route)).status, 400, route);
     assert.equal(calls.length, count);
     currentRole = "USER";
     assert.equal((await request("GET", "/dashboard")).status, 403);
   } finally { await app.close(); }
+});
+
+
+test("failure lists are bounded metadata projections with allowlisted errors", async () => {
+  const row = { id: member, family_id: family, status: "FAILED", error: "secret signed URL", updated_at: new Date(),
+    attempts: 3, next_attempt_at: null, can_retry: 0, cleaned: 0 };
+  for (const kind of ["MEDIA", "EXPORT", "DELETION"] as const) {
+    const f = fixture([admin, [row, row]]);
+    const result = await f.service.failedTasks(actor, { kind, page: 2, pageSize: 1 });
+    assert.equal(result.hasMore, true);
+    assert.equal(result.items.length, 1);
+    assert.equal(result.items[0].error, "UNKNOWN_ERROR");
+    assert.equal(result.items[0].canRetry, false);
+    assert.deepEqual(f.calls[1].params, [2, 1]);
+    assert.doesNotMatch(f.calls[1].sql, /SELECT \*|object_key|snapshot|parts|reason|wechat_openid/);
+  }
+});
+
+test("media requeue locks family and rechecks eligibility, changes only scheduling and audits reason", async () => {
+  await assert.rejects(fixture([admin, []]).service.retryMedia(actor, member, "排查"), status(404));
+  const stale = fixture([admin, [{ family_id: family }], [{ id: family }], []]);
+  await assert.rejects(stale.service.retryMedia(actor, member, "排查"), status(409));
+  assert.ok(stale.calls.every(c => c.sql.startsWith("SELECT")));
+  const f = fixture([admin, [{ family_id: family }], [{ id: family, deleting_at: new Date() }], [{ id: member }], {}, {}]);
+  assert.deepEqual(await f.service.retryMedia(actor, member, "存储已恢复"), { id: member, scheduled: true });
+  assert.match(f.calls[2].sql, /FOR UPDATE/);
+  assert.match(f.calls[3].sql, /PROCESSING_RETRY/);
+  assert.match(f.calls[3].sql, /INTERVAL 60 SECOND/);
+  assert.match(f.calls[3].sql, /FOR UPDATE/);
+  assert.equal(f.calls[4].sql, "UPDATE media_uploads SET next_attempt_at = UTC_TIMESTAMP(3) WHERE id = ?");
+  assert.deepEqual(f.calls[5].params.slice(1), [actor, family, "SYSTEM_MEDIA_RETRY", "media_upload", member, "存储已恢复"]);
 });

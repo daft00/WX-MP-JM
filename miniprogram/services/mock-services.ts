@@ -121,6 +121,11 @@ async function persistFile(path: string): Promise<{ path: string; volatile: bool
 }
 
 class MockAuthService implements AuthService {
+  async updateNickname(_nickname: string): Promise<never> { throw new Error("仅真实服务支持昵称维护"); }
+  hasSession(): boolean { return true; }
+  async login() { return this.getIdentity(); }
+  async getIdentity() { return { user: (await this.getSession()).user }; }
+  async logout(): Promise<void> { throw new Error("演示模式不支持真实退出"); }
   async getSession(): Promise<Session> {
     return findSession(loadState());
   }
@@ -155,6 +160,7 @@ class MockAuthService implements AuthService {
 }
 
 class MockFamilyService implements FamilyService {
+  async creationStatus() { return { canCreate: true }; }
   async listAccessibleFamilies(): Promise<Family[]> {
     const state = loadState();
     const familyIds = new Set(
@@ -383,6 +389,7 @@ class MockChildService implements ChildService {
 }
 
 class MockEntryService implements EntryService {
+  async metrics(): Promise<never> { throw new Error("成长指标分页仅使用真实服务"); }
   async listYears(childId: Id): Promise<string[]> {
     const state = loadState();
     const session = requireActiveSession(state);
@@ -526,6 +533,9 @@ class MockEntryService implements EntryService {
 }
 
 class MockUploadService implements UploadService {
+  async discardPending() {}
+  async quota() { return { enabled: false, quotaBytes: 0, usedBytes: 0, reservedBytes: 0 }; }
+  async resumePending(): Promise<Asset[]> { return []; }
   async saveLocalMedia(childId: Id, files: LocalMediaFile[]): Promise<Asset[]> {
     if (!files.length || files.length > 9) throw new Error("每次请选择1至9个素材");
     const sizes: number[] = [];
@@ -579,6 +589,7 @@ class MockUploadService implements UploadService {
 }
 
 class MockExportService implements ExportService {
+  async authorizeComputer(): Promise<void> { throw new Error("电脑授权仅支持真实服务"); }
   async list(): Promise<ExportJob[]> {
     const state = loadState();
     const session = requireActiveSession(state);
@@ -680,6 +691,15 @@ class MockExportService implements ExportService {
 }
 
 class MockSystemAdminService implements SystemAdminService {
+  async quota(): Promise<never> { throw new Error("配额管理仅支持真实服务"); }
+  async setQuota(): Promise<never> { throw new Error("配额管理仅支持真实服务"); }
+  async listMembers(): Promise<never> { throw new Error("成员分页仅支持真实服务"); }
+  async audits(): Promise<never> { throw new Error("审计记录仅支持真实服务"); }
+  async approveFamilyCreation(_userId: string, _reason: string): Promise<never> { throw new Error("仅真实服务支持开户审批"); }
+  async failedTasks(): Promise<never> { throw new Error("失败任务仅支持真实服务"); }
+  async retryMedia(): Promise<never> { throw new Error("失败任务仅支持真实服务"); }
+  async listFamilies(): Promise<never> { throw new Error("管理列表仅支持真实服务"); }
+  async listUsers(): Promise<never> { throw new Error("管理列表仅支持真实服务"); }
   async getDashboard(): Promise<SystemAdminDashboard> {
     const state = loadState();
     requireSystemAdmin(state);
@@ -742,6 +762,14 @@ export const mockServices: ServiceContainer = {
   children: new MockChildService(),
   entries: new MockEntryService(),
   uploads: new MockUploadService(),
+  governance: {
+    execute: async () => { throw new Error("仅真实服务可用"); },
+    documents: async () => { throw new Error("仅真实服务可用"); }, status: async () => { throw new Error("仅真实服务可用"); },
+    accept: async () => { throw new Error("仅真实服务可用"); }, list: async () => { throw new Error("仅真实服务可用"); },
+    submit: async () => { throw new Error("仅真实服务可用"); }, cancel: async () => { throw new Error("仅真实服务可用"); },
+    review: async () => { throw new Error("仅真实服务可用"); }, leave: async () => { throw new Error("仅真实服务可用"); },
+    transfer: async () => { throw new Error("仅真实服务可用"); },
+  },
   exports: new MockExportService(),
   systemAdmin: new MockSystemAdminService(),
 };

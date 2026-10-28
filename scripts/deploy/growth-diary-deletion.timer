@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Growth Diary deletion cleanup
+PartOf=growth-diary.service
+After=growth-diary.service
+
+[Timer]
+OnBootSec=30s
+OnUnitInactiveSec=60s
+Unit=growth-diary-deletion.service
+
+[Install]
+WantedBy=timers.target

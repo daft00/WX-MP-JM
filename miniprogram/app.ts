@@ -1,6 +1,6 @@
 App<IAppOption>({
   globalData: {
-    isPrototype: true,
+    isPrototype: false,
   },
 });
 

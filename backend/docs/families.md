@@ -45,7 +45,7 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 | 修改/移除 OWNER | 禁止 | 禁止 | 禁止 |
 | 通过移除接口移除自己 | 禁止 | 禁止 | 禁止 |
 
-所有登录用户都可创建家庭；创建家庭、创建 OWNER 成员和写入审计在同一事务中完成。加入家庭固定获得 MEMBER，不能通过邀请码指定 ADMIN。
+创建家庭需管理员批准的一次性资格；已有家庭的OWNER不得再创建，系统管理员也不自动获得资格。资格消费、创建家庭、创建 OWNER 成员和写入审计在同一事务中完成。加入家庭固定获得 MEMBER，不能通过邀请码指定 ADMIN。新增GET `/families/creation-status`及成员角色PUT兼容入口，详见 [阶段3.2/3.3](../../docs/stage-3.2-3.3.md)。
 
 未加入的家庭和不存在的家庭统一返回 404；成员 ID 必须属于路径中的家庭，不能将别的家庭成员 ID 用于修改/移除。SYSTEM_ADMIN 身份不绕过这些规则，本模块没有全局管理接口。
 

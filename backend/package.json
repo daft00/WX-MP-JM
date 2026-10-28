@@ -11,12 +11,15 @@
     "start:dev": "nest start --watch",
     "build": "nest build",
     "typecheck": "tsc --noEmit",
-    "test": "tsc -p tsconfig.test.json && node --test dist-test/test/foundation.test.js dist-test/test/migrations.test.js dist-test/test/auth.test.js dist-test/test/families.test.js dist-test/test/children.test.js dist-test/test/entries.test.js dist-test/test/admin.test.js",
+    "test": "tsc -p tsconfig.test.json && node --test dist-test/test/foundation.test.js dist-test/test/migrations.test.js dist-test/test/auth.test.js dist-test/test/families.test.js dist-test/test/children.test.js dist-test/test/entries.test.js dist-test/test/admin.test.js dist-test/test/media.test.js dist-test/test/cos-http.test.js dist-test/test/exports.test.js dist-test/test/governance.test.js dist-test/test/deletion.test.js",
     "test:db": "tsc -p tsconfig.test.json && node --test dist-test/test/database.integration.test.js",
     "migration:show": "node dist/database/migrate.js show",
     "migration:run": "node dist/database/migrate.js run",
     "migration:revert": "node dist/database/migrate.js revert",
-    "check": "npm run build && npm test"
+    "check": "npm run build && npm test",
+    "media:work": "node dist/media/worker.js",
+    "exports:work": "node dist/exports/worker.js",
+    "deletion:work": "node dist/governance/worker.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
@@ -26,9 +29,13 @@
     "@nestjs/throttler": "^6.7.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
+    "cos-nodejs-sdk-v5": "^3.0.0",
+    "fast-xml-parser": "^5.11.2",
     "mysql2": "^3.14.0",
+    "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
+    "tencentcloud-sdk-nodejs-sts": "^4.1.100",
     "typeorm": "^0.3.31"
   },
   "devDependencies": {
@@ -36,6 +43,10 @@
     "@nestjs/testing": "^11.0.0",
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
+    "@types/qrcode": "^1.5.6",
     "typescript": "~5.9.2"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   }
 }

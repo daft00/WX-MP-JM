@@ -1,0 +1,21 @@
+[Unit]
+Description=Growth Diary media verification and cleanup
+After=network.target mysql.service growth-diary.service
+PartOf=growth-diary.service
+
+[Service]
+Type=oneshot
+User=growth-api
+Group=growth-api
+WorkingDirectory=/opt/growth-diary/current
+EnvironmentFile=/etc/growth-diary/app.env
+ExecStart=/usr/bin/node --max-old-space-size=192 dist/media/worker.js
+TimeoutStartSec=15min
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+RestrictSUIDSGID=true
+StandardOutput=journal
+StandardError=journal

@@ -87,6 +87,11 @@ function memoryStore() {
     },
     async findSession(hash: string) { return sessions.get(hash) ?? null; },
     async deleteSession(hash: string) { sessions.delete(hash); },
+    async updateNickname(id: string, nickname: string) {
+      const user = [...users.values()].find((item) => item.id === id)!;
+      user.nickname = nickname;
+      return { id: user.id, nickname, avatarText: user.avatarText };
+    },
   };
   return { store, sessions, users };
 }
@@ -162,6 +167,16 @@ test("real HTTP auth boundary: default denial, identity, revocation, dev isolati
       assert.equal((await response.json() as { user: User }).user.systemRole, undefined);
       assert.equal((await fetch(base + "/private-probe", { headers: { Authorization: `Bearer ${token}` } })).status, 200);
     });
+    await t.test("nickname updates are scoped to current identity, trimmed and validated", async () => {
+      const put = (body: unknown) => fetch(base + "/auth/me", { method: "PUT", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      assert.equal((await fetch(base + "/auth/me", { method: "PUT" })).status, 401);
+      for (const body of [{ nickname: " " }, { nickname: "a".repeat(41) }, { nickname: "亲友", id: randomUUID() }, { nickname: "亲友", systemRole: "SYSTEM_ADMIN" }]) assert.equal((await put(body)).status, 400);
+      const response = await put({ nickname: "  亲友昵称  " });
+      assert.equal(response.status, 200);
+      assert.equal((await response.json() as { user: User }).user.nickname, "亲友昵称");
+      assert.equal((await (await fetch(base + "/auth/me", { headers: { Authorization: `Bearer ${token}` } })).json() as { user: User }).user.nickname, "亲友昵称");
+    });
+
     await t.test("logout immediately invalidates only the current token, and expired sessions are denied", async () => {
       assert.equal((await post("/auth/logout", {}, { Authorization: `Bearer ${token}` })).status, 204);
       assert.equal((await fetch(base + "/auth/me", { headers: { Authorization: `Bearer ${token}` } })).status, 401);
@@ -194,13 +209,32 @@ test("real HTTP auth boundary: default denial, identity, revocation, dev isolati
       assert.equal((await post("/auth/dev/login", { identity: "developer" }, { "x-dev-login-key": devKey })).status, 404);
       assert.equal((await fetch(base + "/auth/me", { headers: { Authorization: `Bearer ${login.accessToken}` } })).status, 401);
     });
-    await t.test("repeated login attempts receive 429 without trusting forwarded IP headers", async () => {
-      let limited = false;
-      for (let i = 0; i < 11; i++) {
-        const response = await post("/auth/wechat/login", { code: "code" }, { "X-Forwarded-For": `10.0.0.${i}` });
-        if (response.status === 429) { limited = true; break; }
+    await t.test("only the directly connected loopback proxy can supply a client IP", () => {
+      const expressApp = app.getHttpAdapter().getInstance();
+      const clientIp = (peer: string, forwarded?: string) => {
+        const request = Object.create(expressApp.request);
+        request.socket = { remoteAddress: peer };
+        request.headers = forwarded ? { "x-forwarded-for": forwarded } : {};
+        return request.ip;
+      };
+      for (const peer of ["127.0.0.1", "::1", "::ffff:127.0.0.1"]) {
+        assert.equal(clientIp(peer, "203.0.113.10"), "203.0.113.10");
+        assert.equal(clientIp(peer, "198.51.100.20, 203.0.113.10"), "203.0.113.10");
+        assert.equal(clientIp(peer, "198.51.100.20, 127.0.0.1"), "127.0.0.1");
+        assert.equal(clientIp(peer), peer);
       }
-      assert.ok(limited);
+      for (const peer of ["203.0.113.30", "10.0.0.1", "127.0.0.2", "2001:db8::1"]) {
+        assert.equal(clientIp(peer, "198.51.100.20"), peer);
+      }
+    });
+    await t.test("login limits are per proxied client and forged earlier hops cannot bypass them", async () => {
+      for (let i = 0; i < 11; i++) {
+        const response = await post("/auth/wechat/login", {}, {
+          "X-Forwarded-For": `198.51.100.${i + 1}, 203.0.113.10`,
+        });
+        assert.equal(response.status, i < 10 ? 400 : 429);
+      }
+      assert.equal((await post("/auth/wechat/login", {}, { "X-Forwarded-For": "203.0.113.11" })).status, 400);
     });
   } finally {
     await app.close();

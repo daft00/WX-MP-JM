@@ -1,0 +1,45 @@
+<view class="page">
+  <view class="card">
+    <view class="title">隐私说明与使用约定</view>
+    <view wx:for="{{document.paragraphs}}" wx:key="*this" class="paragraph">{{item}}</view>
+    <view wx:if="{{!document.ready}}">运营信息尚未配置完整，当前为待确认说明，暂不能提交同意。</view>
+    <view wx:if="{{document.accepted}}">你已确认当前版本。</view>
+    <button wx:if="{{!loggedIn}}" bindtap="login">微信登录后管理同意与申请</button>
+    <block wx:else>
+      <checkbox-group bindchange="checks">
+        <label><checkbox value="agree" checked="{{agree}}" />我已阅读并同意以上说明与使用约定</label>
+        <label><checkbox value="guardian" checked="{{guardian}}" />我是监护人或已获得监护人授权</label>
+      </checkbox-group>
+      <button disabled="{{busy || !document.ready || !agree || !guardian}}" bindtap="accept">确认并返回家庭选择</button>
+      <button bindtap="logout">退出登录</button>
+    </block>
+  </view>
+  <view wx:if="{{loggedIn}}" class="card">
+    <view class="title">数据处理申请</view>
+    <view>审核通过后仍需申请人确认执行。处理中不可撤销；完成表示在线数据与相关云端文件已清理，备份按保存周期清理。这里不提供账号注销。</view>
+    <picker range="{{kinds}}" value="{{kindIndex}}" bindchange="changeKind"><view>{{kinds[kindIndex]}}</view></picker>
+    <view wx:if="{{kindIndex === 0}}">{{targetLabel}}</view>
+    <button disabled="{{busy}}" bindtap="submit">提交 / 重试申请</button>
+    <button wx:if="{{isAdmin}}" bindtap="toggleAdmin">{{adminView ? '查看我的申请' : '审核申请'}}</button>
+    <button bindtap="loadRequests">刷新申请状态</button>
+    <view wx:for="{{requests}}" wx:key="id" class="paragraph">
+      <view>{{item.kindLabel}} · {{item.statusLabel}}</view><view>{{item.reason}}</view><view>{{item.review_reason}}</view>
+      <view wx:if="{{item.progressLabel}}">{{item.progressLabel}}</view>
+      <view wx:if="{{item.completed_at}}">在线清理完成：{{item.completed_at}}</view>
+      <block wx:if="{{!adminView && item.status === 'APPROVED'}}">
+        <button disabled="{{busy}}" data-id="{{item.id}}" bindtap="execute">确认执行删除（不可撤销）</button>
+        <button data-id="{{item.id}}" bindtap="cancel">撤销申请</button>
+      </block>
+      <block wx:if="{{item.status === 'PENDING'}}">
+        <button wx:if="{{!adminView}}" data-id="{{item.id}}" bindtap="cancel">撤销申请</button>
+        <block wx:else>
+          <button disabled="{{busy}}" data-id="{{item.id}}" data-decision="APPROVED" bindtap="review">接受处理</button>
+          <button disabled="{{busy}}" data-id="{{item.id}}" data-decision="REJECTED" bindtap="review">驳回并说明</button>
+        </block>
+      </block>
+    </view>
+    <button wx:if="{{page > 1}}" bindtap="previousPage">上一页</button>
+    <button wx:if="{{hasMore}}" bindtap="nextPage">下一页</button>
+  </view>
+  <view wx:if="{{error}}">{{error}}</view>
+</view>

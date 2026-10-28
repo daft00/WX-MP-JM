@@ -37,5 +37,6 @@
     </view>
   </view>
 
-  <button class="primary-button save-button" loading="{{saving}}" bindtap="save">保存宝宝档案</button>
+  <view wx:if="{{error}}">{{error}}<button bindtap="load">重新检查权限并加载</button></view>
+  <button class="primary-button save-button" disabled="{{!ready || saving}}" loading="{{saving}}" bindtap="save">保存宝宝档案</button>
 </view>

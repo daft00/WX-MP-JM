@@ -1,3 +1,5 @@
+import { DeletionService } from "../src/governance/deletion.service";
+import { CosStorage } from "../src/media/cos-storage";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { TestContext } from "node:test";
@@ -19,6 +21,7 @@ export async function exerciseEntries(t: TestContext, runner: QueryRunner, url: 
   const status = (code: number) => (error: unknown) => error instanceof HttpException && error.getStatus() === code;
   try {
     for (const id of ids) await runner.query("INSERT INTO users (id, wechat_app_id, wechat_openid, nickname) VALUES (?, 'entry-test', ?, '测试用户')", [id, id]);
+    for (const id of [owner, outsider]) await runner.query("INSERT INTO family_creation_permissions (user_id) VALUES (?)", [id]);
     const family = await families.create(owner, "记录测试家庭"), other = await families.create(outsider, "其他家庭");
     await families.join(member, (await families.createInvite(owner, family.id)).code);
     const baby = { name: "宝宝", birthday: "2024-01-01", genderLabel: "宝宝", avatarColor: "#F0A58A" };
@@ -26,7 +29,7 @@ export async function exerciseEntries(t: TestContext, runner: QueryRunner, url: 
     const draft: SaveEntryDto = { childId: child.id, title: "成长记录", body: "正文", kind: "MILESTONE", occurredAt: "2024-02-29", assetIds: [], metricType: "WEIGHT", metricValue: 12.125 };
     const asset = randomUUID();
     await runner.query(`INSERT INTO assets (id, family_id, child_id, creator_id, kind, status, object_key, original_name, mime_type, size_bytes, ready_at)
-      VALUES (?, ?, ?, ?, 'IMAGE', 'READY', ?, 'test.jpg', 'image/jpeg', 100, UTC_TIMESTAMP(3))`, [asset, family.id, child.id, member, `tests/${asset}.jpg`]);
+      VALUES (?, ?, ?, ?, 'IMAGE', 'READY', ?, 'test.jpg', 'image/jpeg', 100, UTC_TIMESTAMP(3))`, [asset, family.id, child.id, member, `media/${family.id}/${asset}`]);
     const entry = await service.save(member, family.id, { ...draft, assetIds: [asset] });
 
     await t.test("entry author, metric precision and asset order survive MySQL round trips", async () => {
@@ -99,14 +102,49 @@ export async function exerciseEntries(t: TestContext, runner: QueryRunner, url: 
       assert.equal((await runner.query("SELECT id FROM metrics WHERE entry_id = ?", [entry.id])).length, 0);
       assert.equal((await runner.query("SELECT asset_id FROM entry_assets WHERE entry_id = ?", [entry.id])).length, 0);
       assert.equal((await runner.query("SELECT status FROM assets WHERE id = ?", [asset]))[0].status, "DELETING");
+      await new DeletionService(database, families, { enabled: true, remove: async () => undefined } as unknown as CosStorage).tick();
       const membership = (await families.members(owner, family.id)).find((item) => item.userId === member)!;
       await families.remove(owner, family.id, membership.id);
       await assert.rejects(service.save(member, family.id, draft), status(404));
       await assert.rejects(service.metrics(member, family.id, { childId: child.id, type: "WEIGHT", pageSize: 20 }), status(404));
+      await families.join(member, (await families.createInvite(owner, family.id)).code);
+    });
+    await t.test("idempotent concurrent creates and deleted-record retries keep one audit and a tombstone", async () => {
+      const requestId = randomUUID();
+      const request = { ...draft, requestId };
+      const [first, second] = await Promise.all([service.save(member, family.id, request), service.save(member, family.id, request)]);
+      assert.equal(first.id, second.id);
+      assert.equal((await runner.query("SELECT id FROM audit_logs WHERE target_id = ? AND action = 'ENTRY_CREATE'", [first.id])).length, 1);
+      await assert.rejects(service.save(member, family.id, { ...request, title: "更改内容" }), status(409));
+      await service.remove(owner, family.id, first.id);
+      await assert.rejects(service.save(member, family.id, request), status(404));
+    });
+    await t.test("more than 200 metrics and cross-year records paginate without loss", async () => {
+      const target = await children.save(owner, family.id, baby);
+      for (let i = 0; i < 205; i++) await service.save(owner, family.id, {
+        ...draft, childId: target.id, occurredAt: i % 2 ? "2025-01-01" : "2024-12-31", metricValue: i + 1,
+      });
+      assert.deepEqual(await service.years(member, family.id, target.id), ["2025", "2024"]);
+      let cursor: string | undefined;
+      const records: string[] = [];
+      do {
+        const page = await service.list(member, family.id, { childId: target.id, year: "2024", pageSize: 40, cursor });
+        assert.ok(page.items.every((entry) => entry.occurredAt.startsWith("2024")));
+        records.push(...page.items.map((entry) => entry.id)); cursor = page.nextCursor;
+      } while (cursor);
+      assert.equal(records.length, 103); assert.equal(new Set(records).size, 103);
+      const metrics: string[] = [];
+      do {
+        const page = await service.metrics(member, family.id, { childId: target.id, type: "WEIGHT", order: "DESC", pageSize: 100, cursor });
+        if (!metrics.length) assert.equal(page.items[0].measuredAt, "2025-01-01");
+        metrics.push(...page.items.map((point) => point.id)); cursor = page.nextCursor;
+      } while (cursor);
+      assert.equal(metrics.length, 205); assert.equal(new Set(metrics).size, 205);
     });
   } finally {
     await database.onModuleDestroy();
     const scope: { id: string }[] = await runner.query("SELECT id FROM families WHERE owner_id IN (?, ?, ?)", ids);
+    await runner.query("DELETE FROM data_requests WHERE user_id IN (?, ?, ?)", ids);
     await runner.query("DELETE FROM audit_logs WHERE actor_id IN (?, ?, ?)", ids);
     for (const { id } of scope) {
       for (const table of ["entries", "assets", "invites", "children", "family_members"]) await runner.query(`DELETE FROM ${table} WHERE family_id = ?`, [id]);

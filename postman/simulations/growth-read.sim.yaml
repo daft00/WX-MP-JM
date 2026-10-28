@@ -1,0 +1,5 @@
+simulation: growth-read
+routing: path
+mocks:
+  - routeKey: growth
+    path: ../mocks/growth-read/default.js

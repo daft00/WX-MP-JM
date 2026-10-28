@@ -39,6 +39,8 @@ jobs:
       - run: npm run check
       - name: Deployment script checks (no deployment)
         run: |
+          python3 -m unittest discover -s ../scripts/ops -p "test_*.py"
+          node --test ../test/release-readiness.test.cjs
           bash -n ../scripts/build-backend.sh
           bash -n ../scripts/deploy-backend.sh
           node --test ../scripts/deploy/release-tools.test.cjs

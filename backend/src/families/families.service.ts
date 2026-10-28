@@ -5,7 +5,7 @@ import { EntityManager } from "typeorm";
 import { DatabaseService } from "../database/database.service";
 
 type Role = "OWNER" | "ADMIN" | "MEMBER";
-type FamilyRow = { id: string; name: string; owner_id: string; created_at: Date };
+type FamilyRow = { id: string; name: string; owner_id: string; created_at: Date; deleting_at?: Date | null };
 type MemberRow = { id: string; family_id: string; user_id: string; role: Role; joined_at: Date; nickname: string; avatar_text: string };
 
 function familyView(row: FamilyRow) {
@@ -26,10 +26,11 @@ export class FamiliesService {
     return createHmac("sha256", Buffer.from(secret, "hex")).update(code.trim().toUpperCase()).digest("hex");
   }
 
-  async lockFamily(manager: EntityManager, id: string): Promise<FamilyRow> {
+  async lockFamily(manager: EntityManager, id: string, allowDeleting = false): Promise<FamilyRow> {
     // ponytail: 小规模按家庭串行化，保证成员变更与邀请消费有相同锁顺序；高并发时再细分锁。
-    const rows: FamilyRow[] = await manager.query("SELECT id, name, owner_id, created_at FROM families WHERE id = ? FOR UPDATE", [id]);
+    const rows: FamilyRow[] = await manager.query("SELECT id, name, owner_id, created_at, deleting_at FROM families WHERE id = ? FOR UPDATE", [id]);
     if (!rows[0]) throw new NotFoundException("Family not found");
+    if (rows[0].deleting_at && !allowDeleting) throw new ConflictException("Family dissolution is in progress");
     return rows[0];
   }
 
@@ -60,18 +61,33 @@ export class FamiliesService {
   list(userId: string) {
     return this.database.transaction(async (manager) => {
       const rows: FamilyRow[] = await manager.query(`SELECT f.id, f.name, f.owner_id, f.created_at FROM families f
-        JOIN family_members m ON m.family_id = f.id WHERE m.user_id = ? ORDER BY f.created_at, f.id`, [userId]);
+        JOIN family_members m ON m.family_id = f.id WHERE m.user_id = ? AND f.deleting_at IS NULL ORDER BY f.created_at, f.id`, [userId]);
       return rows.map(familyView);
     });
   }
 
   create(userId: string, name: string) {
     return this.database.transaction(async (manager) => {
+      // 审批和创建先锁同一用户，资格消费与家庭创建在同一事务提交。
+      await manager.query("SELECT id FROM users WHERE id = ? FOR UPDATE", [userId]);
+      const permissions = await manager.query("SELECT used_at FROM family_creation_permissions WHERE user_id = ? FOR UPDATE", [userId]);
+      if (!permissions[0] || permissions[0].used_at !== null) throw new ForbiddenException("Family creation approval required or already used");
+      const owned = await manager.query("SELECT id FROM families WHERE owner_id = ? LIMIT 1", [userId]);
+      if (owned.length) throw new ConflictException("Only one owned family is allowed");
       const id = randomUUID();
       await manager.query("INSERT INTO families (id, name, owner_id) VALUES (?, ?, ?)", [id, name, userId]);
       await manager.query("INSERT INTO family_members (id, family_id, user_id, role) VALUES (?, ?, ?, 'OWNER')", [randomUUID(), id, userId]);
       await this.audit(manager, userId, id, "FAMILY_CREATE", "family", id);
+      await manager.query("UPDATE family_creation_permissions SET used_at = UTC_TIMESTAMP(3) WHERE user_id = ?", [userId]);
       return familyView(await this.lockFamily(manager, id));
+    });
+  }
+
+  creationStatus(userId: string) {
+    return this.database.transaction(async (manager) => {
+      const permissions = await manager.query("SELECT used_at FROM family_creation_permissions WHERE user_id = ?", [userId]);
+      const owned = await manager.query("SELECT id FROM families WHERE owner_id = ? LIMIT 1", [userId]);
+      return { canCreate: Boolean(permissions[0] && permissions[0].used_at === null && !owned.length) };
     });
   }
 
@@ -161,4 +177,31 @@ export class FamiliesService {
   clearInvites(manager: EntityManager, familyId: string, userId: string) {
     return manager.query("DELETE FROM invites WHERE family_id = ? AND creator_id = ? AND used_at IS NULL", [familyId, userId]);
   }
+  leave(userId: string, familyId: string) {
+    return this.database.transaction(async manager => {
+      const { actor } = await this.requireMember(manager, familyId, userId);
+      if (actor.role === "OWNER") throw new ForbiddenException("Transfer ownership or request dissolution first");
+      await this.clearInvites(manager, familyId, userId);
+      await manager.query("DELETE FROM family_members WHERE family_id = ? AND user_id = ?", [familyId, userId]);
+      await this.audit(manager, userId, familyId, "FAMILY_LEAVE", "membership", actor.id);
+    });
+  }
+
+  transfer(userId: string, familyId: string, memberId: string) {
+    return this.database.transaction(async manager => {
+      const { actor } = await this.requireMember(manager, familyId, userId);
+      if (actor.role !== "OWNER") throw new ForbiddenException("Owner required");
+      const [target] = await manager.query("SELECT * FROM family_members WHERE family_id = ? AND id = ? FOR UPDATE", [familyId, memberId]);
+      if (!target) throw new NotFoundException("Member not found");
+      if (target.user_id === userId) throw new BadRequestException("Choose another member");
+      // Demote before changing families.owner_id to satisfy the existing owner composite foreign key.
+      await manager.query("UPDATE family_members SET role = 'ADMIN' WHERE family_id = ? AND id = ?", [familyId, actor.id]);
+      await manager.query("UPDATE families SET owner_id = ? WHERE id = ?", [target.user_id, familyId]);
+      await manager.query("UPDATE family_members SET role = 'OWNER' WHERE family_id = ? AND id = ?", [familyId, target.id]);
+      await this.clearInvites(manager, familyId, userId);
+      await this.audit(manager, userId, familyId, "FAMILY_OWNER_TRANSFER", "membership", memberId);
+      return this.memberResult(manager, familyId, memberId);
+    });
+  }
+
 }

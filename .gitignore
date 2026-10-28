@@ -22,3 +22,12 @@ backups/
 # Backend build and test output
 backend/dist/
 backend/dist-test/
+
+# Operations secrets, archives and local validation records
+__pycache__/
+*.pyc
+*.gpg
+backup.cnf
+monitor.cnf
+restore.cnf
+release-evidence.local.json

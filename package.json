@@ -6,8 +6,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && node --check prototype/app.js && npm test",
-    "test": "node --test test/media.test.cjs test/record-groups.test.cjs test/export.test.cjs",
-    "prototype": "http-server prototype -p 4173 -c-1"
+    "test": "node --test test/media.test.cjs test/record-groups.test.cjs test/export.test.cjs test/http-services.test.cjs test/uploads.test.cjs test/cloud-export.test.cjs test/release-readiness.test.cjs",
+    "prototype": "http-server prototype -p 4173 -c-1",
+    "release:check": "node scripts/release-readiness.cjs"
   },
   "devDependencies": {
     "http-server": "^14.1.1",

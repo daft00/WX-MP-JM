@@ -1,4 +1,6 @@
+<view wx:if="{{error}}" class="card">{{error}}<button bindtap="loadInitial">重新加载</button></view>
 <view class="page wall-page">
+  <button bindtap="goExport">导出与备份</button>
   <view class="wall-context-bar" bindtap="switchFamily">
     <view class="context-home">⌂</view>
     <view class="context-copy">
@@ -60,7 +62,7 @@
 
                 <view wx:if="{{item.assets.length}}" class="media-grid media-count-{{item.assets.length}}">
                   <view wx:for="{{item.assets}}" wx:key="id" wx:for-item="asset" class="media-cell tone-{{asset.placeholderTone}}">
-                    <image wx:if="{{asset.kind === 'IMAGE' && asset.localPath}}" class="media-image" src="{{asset.localPath}}" mode="aspectFill" />
+                    <image wx:if="{{asset.kind === 'IMAGE' && asset.localPath}}" class="media-image" src="{{asset.posterPath || asset.localPath}}" mode="aspectFill" />
                     <image wx:elif="{{asset.kind === 'VIDEO' && asset.posterPath}}" class="media-image" src="{{asset.posterPath}}" mode="aspectFill" />
                     <view wx:else class="media-placeholder">
                       <text class="media-icon">{{asset.kind === 'VIDEO' ? '▶' : '✦'}}</text>
@@ -71,6 +73,7 @@
                 </view>
 
                 <view class="card-body">
+                  <text wx:if="{{item.assetIds.length && !item.assets.length}}" class="meta">已关联 {{item.assetIds.length}} 个素材，请进入详情重试加载</text>
                   <view class="title-line">
                     <text class="entry-title">{{item.title}}</text>
                     <text wx:if="{{item.metricLabel}}" class="metric-chip">{{item.metricLabel}}</text>

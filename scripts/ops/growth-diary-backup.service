@@ -1,0 +1,16 @@
+[Unit]
+Description=Growth Diary encrypted offsite database backup
+After=network-online.target mysql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/growth-diary-ops/backup.py backup --config /etc/growth-diary/backup.json
+TimeoutStartSec=2h
+UMask=0077
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/growth-diary/encrypted-backups /etc/growth-diary/backup-public-keyring /run/lock
+

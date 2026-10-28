@@ -33,7 +33,7 @@ async function check(directory, envFile, schema) {
     const [version] = await connection.query('SELECT VERSION() AS version');
     if (!/^8\.4\./.test(version[0].version)) throw new Error('MySQL 8.4 required');
     const { INITIAL_TABLE_NAMES } = requireRelease('./dist/database/migrations/1790985600000-initial-schema');
-    for (const table of [...INITIAL_TABLE_NAMES, 'auth_sessions']) {
+    for (const table of [...INITIAL_TABLE_NAMES, 'auth_sessions', 'family_creation_permissions', 'entry_requests', 'family_storage', 'media_uploads', 'export_tasks', 'export_pairings', 'policy_consents', 'data_requests']) {
       if (!/^[a-z_]+$/.test(table)) throw new Error('Invalid table identifier');
       await connection.query(`SELECT 1 FROM \`${table}\` LIMIT 1`);
     }

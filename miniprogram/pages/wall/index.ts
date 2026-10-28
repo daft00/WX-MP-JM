@@ -1,3 +1,4 @@
+import { ApiError } from "../../services/http-services";
 import { services } from "../../services/index";
 import { Asset, Child, Entry, FamilyMember } from "../../types/models";
 import { calculateAge, formatDate } from "../../utils/date";
@@ -30,7 +31,11 @@ Page({
     nextCursor: "" as string,
     loading: true,
     hasMore: false,
+    error: "",
   },
+
+  revision: 0,
+  onHide() { this.revision++; },
 
   async onShow() {
     await this.loadInitial();
@@ -48,7 +53,8 @@ Page({
   },
 
   async loadInitial() {
-    this.setData({ loading: true });
+    const version = ++this.revision;
+    this.setData({ loading: true, error: "", entries: [], years: [], hasMore: false });
     try {
       const [family, children, selection] = await Promise.all([
         services.family.getCurrentFamily(),
@@ -58,12 +64,15 @@ Page({
       const selectedChildId = children.some((child) => child.id === selection.childId)
         ? selection.childId
         : children[0]?.id || "";
-      if (!selection.familyId || !selectedChildId) {
+      if (!selection.familyId || !children.some((child) => child.id === selection.childId)) {
         wx.reLaunch({ url: "/pages/select-family/index" });
         return;
       }
+      if (version !== this.revision) return;
+      if (selectedChildId !== this.data.selectedChildId) this.setData({ selectedYear: "", expandedMonth: "" });
       const availableYears = await services.entries.listYears(selectedChildId);
       const yearOptions = [{ value: "", label: "全部年份" }, ...availableYears.map((year) => ({ value: year, label: `${year}年` }))];
+      if (version !== this.revision) return;
       const selectedYear = availableYears.includes(this.data.selectedYear) ? this.data.selectedYear : "";
       this.setData({
         yearOptions,
@@ -80,24 +89,26 @@ Page({
         pageSize: 8,
       });
       const cards = await this.toCards(page.items, children);
+      if (version !== this.revision) return;
       const years = groupRecords(cards);
       this.setData({
         entries: cards,
         years,
-        expandedMonth: years[0]?.months[0]?.key || "",
+        expandedMonth: years.some((year) => year.months.some((month) => month.key === this.data.expandedMonth)) ? this.data.expandedMonth : years[0]?.months[0]?.key || "",
         nextCursor: page.nextCursor || "",
         hasMore: Boolean(page.nextCursor),
       });
     } catch (error) {
-      this.showError(error);
+      if (version === this.revision) this.showError(error);
     } finally {
-      this.setData({ loading: false });
+      if (version === this.revision) this.setData({ loading: false });
     }
   },
 
   async loadMore() {
     if (this.data.loading || !this.data.hasMore) return;
-    this.setData({ loading: true });
+    const version = this.revision;
+    this.setData({ loading: true, error: "" });
     try {
       const page = await services.entries.list({
         childId: this.data.selectedChildId,
@@ -106,16 +117,17 @@ Page({
         pageSize: 8,
       });
       const cards = await this.toCards(page.items, this.data.children);
+      if (version !== this.revision) return;
       this.setData({
-        entries: [...this.data.entries, ...cards],
+        entries: Array.from(new Map([...this.data.entries, ...cards].map((entry) => [entry.id, entry])).values()),
         years: groupRecords([...this.data.entries, ...cards]),
         nextCursor: page.nextCursor || "",
         hasMore: Boolean(page.nextCursor),
       });
     } catch (error) {
-      this.showError(error);
+      if (version === this.revision) this.showError(error);
     } finally {
-      this.setData({ loading: false });
+      if (version === this.revision) this.setData({ loading: false });
     }
   },
 
@@ -165,8 +177,9 @@ Page({
 
   async selectChild(event: WechatMiniprogram.TouchEvent) {
     if (this.data.loading) return;
+    this.setData({ loading: true });
     const childId = event.currentTarget.dataset.id as string;
-    await services.family.selectChild(childId);
+    try { await services.family.selectChild(childId); } catch (error) { this.showError(error); this.setData({ loading: false }); return; }
     this.setData({ selectedChildId: childId, selectedYear: "", yearIndex: 0, entries: [], years: [], nextCursor: "", hasMore: false });
     await this.loadInitial();
   },
@@ -175,6 +188,8 @@ Page({
     const id = event.currentTarget.dataset.id as string;
     wx.navigateTo({ url: `/pages/entry-detail/index?id=${id}` });
   },
+
+  goExport() { wx.navigateTo({ url: "/pages/export/index" }); },
 
   goPublish() {
     wx.removeStorageSync("growth_diary_edit_entry_id");
@@ -187,6 +202,10 @@ Page({
 
   showError(error: unknown) {
     const message = error instanceof Error ? error.message : "加载失败，请稍后重试";
-    wx.showToast({ title: message, icon: "none" });
+    this.setData({ error: message });
+    if (error instanceof ApiError && [401, 403, 404].includes(error.status)) {
+      this.setData({ entries: [], years: [], children: [], familyName: "成长日记" });
+      wx.reLaunch({ url: "/pages/select-family/index" });
+    }
   },
 });

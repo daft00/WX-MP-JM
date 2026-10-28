@@ -180,10 +180,28 @@ sudo du -sh /opt/growth-diary/releases /opt/growth-diary/backups
 
 完成域名、有效证书及公网接入准备后，可复制 `scripts/deploy/nginx.conf.example`，替换域名与证书路径，手动执行 `sudo nginx -t` 后再启用并 reload。不要覆盖现有站点。脚本不申请证书、不设置自动续期，也不更改腾讯云防火墙；这些需要按实际域名另行配置。
 
-模板保留 `/api/v1` 路径并覆盖来自客户端的转发头。当前 Express 不信任代理头，因此登录限流会按 Nginx 的本机 IP 共用额度；公网多用户启用前需完善可信代理配置并验证限流，不能直接改成信任任意代理。模板不支持媒体大文件上传，后续媒体按规划直传 COS。
+模板保留 `/api/v1` 路径并覆盖来自客户端的转发头。Express 仅信任直连本机地址（`127.0.0.1`、`::1`、`::ffff:127.0.0.1`）这一跳，不继续解析更早的可信代理。Nginx 必须使用 `$remote_addr` 覆盖 `X-Forwarded-For`、`$host` 覆盖 `X-Forwarded-Host`、`$scheme` 覆盖 `X-Forwarded-Proto`；不要改成直接透传或追加客户端头。后台保持监听 `127.0.0.1:3000`，本机进程及 SSH 隧道拥有可信来源能力。以后增加 CDN/负载均衡时需重新设计代理边界，不能直接开启全部信任。模板不支持媒体大文件上传，后续媒体按规划直传 COS。
+
+已有手工配置的站点须补上 `proxy_set_header X-Forwarded-Host $host;`，保留当前证书路径及监听地址（备案期间如为 `127.0.0.1:443`，不要替换成公网监听）。执行 `sudo nginx -t` 成功后再 reload。本次仅涉及应用配置，无数据库迁移；重新构建、导入新版本并 activate 后验证 HTTPS 健康接口。可向 `/api/v1/auth/wechat/login` 发送空 JSON 请求并不断改变伪造的转发头：同一来源在独立一分钟窗口内应先返回400，第11次返回429；另一真实来源应仍返回400。空 JSON 不会调用微信，也不会创建会话；此测试会暂时占用登录限流额度，避免与正常登录同时进行。本机单一来源测试不能代替公网不同客户端验收。
 
 参考：[systemd-run 官方说明](https://github.com/systemd/systemd/blob/main/man/systemd-run.xml)、[systemd 执行环境](https://github.com/systemd/systemd/blob/main/man/systemd.exec.xml)、[Nginx 代理模块](https://nginx.org/en/docs/http/ngx_http_proxy_module.html)。
 
 ## 验证边界
 
 本轮本地执行 Bash 语法检查、两项配置/凭据测试，以及模拟激活成功、失败恢复旧版本、旧版本不兼容、首次启动失败的四条恢复分支。CI 已增加这些检查，不会自动部署服务器。真实 Ubuntu systemd、MySQL 备份/迁移和 Nginx/TLS 未在本机执行；应先完成专用测试库 `npm run test:db`，再按本说明逐项部署验收。
+
+## 阶段5媒体部署补充
+
+当前新增第五项迁移及独立媒体worker/timer。启用COS前须按 [阶段5部署说明](../../docs/stage-5.md) 验证测试库、配置私有桶和权限，并安装任务。迁移前停止worker，主服务激活后显式检查/启动timer；仅API健康正常不足以证明媒体复核工作正常。未配置COS时保持 MEDIA_ENABLED=false。
+
+## 阶段6导出部署补充
+
+新增第六项迁移、exports前缀COS权限和独立export worker/timer；电脑配对需配置 EXPORT_PUBLIC_ORIGIN。迁移前停止两种后台任务，激活后检查并启动timer。详见 [阶段6部署验收](../../docs/stage-6.md)。原有历史 export_jobs 表保留，本阶段使用 export_tasks。
+
+## 定期备份与运维
+
+日常加密异机备份、隔离库恢复演练、巡检通知及正式发布证据检查见 [阶段8说明](../../docs/stage-8.md)。现有部署脚本的迁移前备份仍保留原行为（本机SQL.gz），不能代替异机加密备份；两者共用迁移锁。新增工具未自动安装或启用。
+
+## 删除处理部署补充
+
+新增第八项迁移与growth-diary-deletion.service/timer，停止并检查media、export、deletion三类后台任务后再迁移。第七项原有重复外键名已修复，曾失败时需先检查残留表。首次务必在独立空测试库验证8项迁移；迁移后激活API并显式启动/检查三个timer。运维monitor.py也需随之更新，详情见 [阶段7当前部署顺序](../../docs/stage-7.md)。本次未执行服务器操作。

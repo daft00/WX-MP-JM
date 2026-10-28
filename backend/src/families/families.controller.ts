@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Header, HttpCode, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Header, HttpCode, Param, ParseUUIDPipe, Patch, Post, Put, Req, UseGuards } from "@nestjs/common";
 import { ThrottlerGuard } from "@nestjs/throttler";
 import { Transform } from "class-transformer";
 import { IsIn, IsString, Length, Matches } from "class-validator";
@@ -34,6 +34,10 @@ export class FamiliesController {
   @UseGuards(ThrottlerGuard)
   @Header("Cache-Control", "no-store")
   create(@Req() request: AuthenticatedRequest, @Body() body: CreateFamilyDto) { return this.families.create(request.auth.user.id, body.name); }
+
+  @Get("creation-status")
+  @Header("Cache-Control", "no-store")
+  creationStatus(@Req() request: AuthenticatedRequest) { return this.families.creationStatus(request.auth.user.id); }
 
   @Post("join")
   @UseGuards(ThrottlerGuard)
@@ -75,4 +79,22 @@ export class FamiliesController {
     @Param("memberId", new ParseUUIDPipe({ version: "4" })) memberId: string) {
     return this.families.remove(request.auth.user.id, familyId, memberId);
   }
+
+  @Put(":familyId/members/:memberId")
+  @Header("Cache-Control", "no-store")
+  rolePut(@Req() request: AuthenticatedRequest,
+    @Param("familyId", new ParseUUIDPipe({ version: "4" })) familyId: string,
+    @Param("memberId", new ParseUUIDPipe({ version: "4" })) memberId: string, @Body() body: MemberRoleDto) {
+    return this.families.changeRole(request.auth.user.id, familyId, memberId, body.role);
+  }
+  @Post(":familyId/leave") @HttpCode(204)
+  leave(@Req() r: AuthenticatedRequest, @Param("familyId", new ParseUUIDPipe({ version: "4" })) family: string) {
+    return this.families.leave(r.auth.user.id, family);
+  }
+  @Post(":familyId/owner/:memberId") @Header("Cache-Control", "no-store")
+  transfer(@Req() r: AuthenticatedRequest, @Param("familyId", new ParseUUIDPipe({ version: "4" })) family: string,
+    @Param("memberId", new ParseUUIDPipe({ version: "4" })) member: string) {
+    return this.families.transfer(r.auth.user.id, family, member);
+  }
+
 }

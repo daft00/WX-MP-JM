@@ -1,5 +1,6 @@
+<view wx:if="{{error}}" class="card">{{error}}<button bindtap="loadEntry">重新加载</button></view>
 <view class="page detail-page" wx:if="{{entry}}">
-  <view class="prototype-banner">本页展示的是本地演示数据，不代表素材已经上传或备份。</view>
+
 
   <view class="detail-head">
     <view class="detail-avatar" style="background: {{childColor}};">{{childInitial}}</view>
@@ -30,13 +31,16 @@
       <view wx:else class="detail-placeholder">
         <text class="placeholder-icon">{{item.kind === 'VIDEO' ? '▶' : '✦'}}</text>
         <text>{{item.name}}</text>
-        <text class="placeholder-note">演示素材占位</text>
+        <text class="placeholder-note">媒体预览待接入</text>
       </view>
     </view>
   </view>
 
+  <view wx:if="{{entry.assetIds.length && !assets.length}}">已关联{{entry.assetIds.length}}个素材，如未显示，请刷新重试。</view>
+  <button wx:if="{{entry.assetIds.length}}" bindtap="loadEntry">刷新媒体链接</button>
   <view class="action-row">
     <button wx:if="{{canEdit}}" class="secondary-button action-button" bindtap="editEntry">编辑记录</button>
-    <button wx:if="{{canDelete}}" class="danger-button action-button" bindtap="deleteEntry">永久删除</button>
+    <button wx:if="{{canDelete}}" disabled="{{deleting}}" class="danger-button action-button" bindtap="deleteEntry">永久删除</button>
+    <button wx:if="{{canDelete}}" bindtap="requestDeletion">提交删除申请</button>
   </view>
 </view>

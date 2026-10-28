@@ -55,4 +55,8 @@ export class AuthService {
   logout(tokenHash: string): Promise<void> {
     return this.store.deleteSession(tokenHash);
   }
+
+  async updateNickname(userId: string, nickname: string) {
+    return { user: await this.store.updateNickname(userId, nickname) };
+  }
 }

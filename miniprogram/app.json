@@ -1,13 +1,13 @@
 {
   "pages": [
     "pages/select-family/index",
+    "pages/child-form/index",
     "pages/wall/index",
     "pages/publish/index",
     "pages/growth/index",
-    "pages/profile/index",
     "pages/entry-detail/index",
-    "pages/child-form/index",
     "pages/export/index",
+    "pages/governance/index",
     "pages/system-admin/index"
   ],
   "window": {
@@ -17,11 +17,12 @@
     "navigationBarTextStyle": "black",
     "backgroundColor": "#FFF9F2"
   },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
   "tabBar": {
     "color": "#9A8E84",
     "selectedColor": "#E88163",
     "backgroundColor": "#FFFCF8",
-    "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/wall/index",
@@ -40,15 +41,7 @@
         "text": "成长数据",
         "iconPath": "assets/tabbar/growth.png",
         "selectedIconPath": "assets/tabbar/growth-active.png"
-      },
-      {
-        "pagePath": "pages/profile/index",
-        "text": "我的",
-        "iconPath": "assets/tabbar/profile.png",
-        "selectedIconPath": "assets/tabbar/profile-active.png"
       }
     ]
-  },
-  "style": "v2",
-  "sitemapLocation": "sitemap.json"
+  }
 }

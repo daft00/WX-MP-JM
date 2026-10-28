@@ -1,6 +1,6 @@
 # 模块 6：成长记录与指标
 
-复用 `entries`、`metrics`、`entry_assets`、`assets`、`audit_logs`，不新增迁移、环境变量或依赖。运行前需完成模块 2–3 的两项迁移。当前小程序仍使用 Mock，本模块提供后端接口及验证用例。
+阶段4已接入真实小程序记录与指标页面。新增第四项迁移 `EntryRequests1790985603000` 和 `entry_requests` 幂等账本；运行前需完成全部四项迁移，不新增环境变量或依赖。
 
 ## 接口
 
@@ -9,6 +9,7 @@
 | 方法 | 路径 | 用途与返回 |
 | --- | --- | --- |
 | GET | `/entries?childId=...&pageSize=20&cursor=...` | 200，成长墙分页；childId 可省略以查看整个家庭 |
+| GET | `/entries/years?childId=...` | 200，宝宝记录年份字符串数组，倒序且去重 |
 | GET | `/entries/:entryId` | 200，单条记录，包含指标及有序素材 ID |
 | POST | `/entries` | 201，创建记录 |
 | PUT | `/entries/:entryId` | 200，完整表单更新 |
@@ -19,10 +20,15 @@
 
 记录与宝宝 ID 都限定在路径家庭内。未登录 401、非法参数 400、无写入权限 403、无权访问的家庭或不存在的记录/宝宝 404、素材已被其他记录绑定 409。未知数据库错误沿用统一错误响应。
 
+## 创建重试
+
+POST 必须带客户端生成的 `requestId`（UUID v4），PUT 不接受该字段。同一家庭、同一用户、相同请求ID及规范化表单重复提交，只创建一次；返回记录当前内容。不同内容复用请求ID返回409。原记录已删除时返回404，不能重试复活。账本与业务同事务保存，家庭锁串行化并发重试；账本不会随单条记录删除。
+
 ## 完整表单与响应
 
 ```json
 {
+  "requestId": "替换为本次创建请求的UUIDv4",
   "childId": "替换为宝宝UUID",
   "kind": "MILESTONE",
   "title": "记录今天的身高",
@@ -50,7 +56,7 @@
 
 列表统一返回 `{ "items": [...], "nextCursor": "..." }`，没有下一页时省略 `nextCursor`。每页默认 20、最多 200；客户端必须持续使用返回的游标，不应只取首屏作为完整成长曲线。
 
-成长墙按发生日期、ID 倒序；指标按测量日期、ID 正序。同一天的多个记录不会因排序相同而漏页。游标包含时间和 ID，绑定家庭、宝宝筛选及指标类型；切换筛选时清空游标。无效或不匹配游标返回 400。它只是分页位置，不是访问凭据。
+成长墙支持可选 `year=2026`，在数据库分页之前按日历年筛选。成长墙按发生日期、ID 倒序；指标默认按测量日期、ID 正序，也支持 `order=DESC`。小程序使用倒序取得最新值；同日按ID排序，不代表同日录入先后。同一天的多个记录不会因排序相同而漏页。游标包含时间和 ID，绑定家庭、宝宝筛选、年份或指标类型与排序方向；切换筛选时清空游标。无效或不匹配游标返回 400。它只是分页位置，不是访问凭据。
 
 分页不是固定快照：用户在翻页期间编辑日期或迁移宝宝时，列表可能变化，应刷新列表。当前按家庭串行化业务操作适合初期小规模使用；未来媒体模块也必须遵守相同锁顺序。
 
@@ -71,10 +77,11 @@ API=http://127.0.0.1:3000/api/v1
 read -rsp 'Bearer token: ' TOKEN; echo
 read -rp 'Family UUID: ' FAMILY_ID
 read -rp 'Child UUID: ' CHILD_ID
+REQUEST_ID=$(cat /proc/sys/kernel/random/uuid)
 
 curl --fail-with-body "$API/families/$FAMILY_ID/entries" \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  -d "{\"childId\":\"$CHILD_ID\",\"kind\":\"MILESTONE\",\"title\":\"身高记录\",\"body\":\"\",\"occurredAt\":\"2024-02-29\",\"assetIds\":[],\"metricType\":\"HEIGHT\",\"metricValue\":80.125}"
+  -d "{\"requestId\":\"$REQUEST_ID\",\"childId\":\"$CHILD_ID\",\"kind\":\"MILESTONE\",\"title\":\"身高记录\",\"body\":\"\",\"occurredAt\":\"2024-02-29\",\"assetIds\":[],\"metricType\":\"HEIGHT\",\"metricValue\":80.125}"
 
 curl --fail-with-body "$API/families/$FAMILY_ID/entries?childId=$CHILD_ID&pageSize=20" -H "Authorization: Bearer $TOKEN"
 curl --fail-with-body "$API/families/$FAMILY_ID/metrics?childId=$CHILD_ID&type=HEIGHT&pageSize=20" -H "Authorization: Bearer $TOKEN"
@@ -93,3 +100,7 @@ unset TOKEN
 `npm run check` 验证构建及单元/HTTP 测试，包括默认鉴权、角色矩阵、伪造身份、家庭与宝宝范围、日期/精度/数组校验、指标单位、素材状态/复用、分页和审计错误传播。
 
 `npm run test:db` 增加实际 MySQL 的 DECIMAL/日期往返、同日记录和指标分页、指标替换/清除、调整宝宝、素材关联、删除级联及审计失败回滚用例。必须指向专用空测试库，配置见 [数据库文档](database.md)。本机没有可用 MySQL，真实库用例仅编译，未执行；后续部署前需在测试库或 CI 完成验收。
+
+## 删除清理更新（2026-10-26）
+
+OWNER/ADMIN直接删除权限不变。DELETE返回204表示记录已移除且清理任务已持久化，不能视为云文件已全部删除。媒体、临时上传文件、受影响宝宝历史导出包和快照异步清理，完成状态在governance申请列表查看；同家庭同时一个删除任务，处理中暂不新建导出。需第八项迁移及删除worker，详见 [当前数据删除约定](../../docs/stage-7.md)。

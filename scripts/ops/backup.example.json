@@ -1,0 +1,9 @@
+{
+  "backup_dir": "/opt/growth-diary/encrypted-backups",
+  "mysql_defaults": "/etc/growth-diary/backup.cnf",
+  "gpg_home": "/etc/growth-diary/backup-public-keyring",
+  "recipient": "REPLACE_WITH_VERIFIED_FULL_PUBLIC_KEY_FINGERPRINT",
+  "ssh_alias": "growth-backup",
+  "remote_script": "/opt/growth-diary-ops/backup.py",
+  "remote_dir": "/srv/growth-diary-backups"
+}

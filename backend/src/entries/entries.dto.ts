@@ -1,5 +1,5 @@
 import { Transform } from "class-transformer";
-import { ArrayMaxSize, ArrayUnique, IsArray, IsIn, IsInt, IsNumber, IsString, IsUUID, Length, Max, MaxLength, Min, ValidateBy, ValidateIf } from "class-validator";
+import { ArrayMaxSize, ArrayUnique, IsArray, IsIn, IsInt, IsNumber, IsString, IsUUID, Length, Matches, Max, MaxLength, Min, ValidateBy, ValidateIf } from "class-validator";
 import { isBirthday } from "../children/children.dto";
 
 export class SaveEntryDto {
@@ -27,11 +27,21 @@ class PageQueryDto {
   @ValidateIf((_object, value) => value !== undefined) @IsString() @Length(1, 600) cursor?: string;
 }
 
+export class CreateEntryDto extends SaveEntryDto {
+  @IsUUID("4") requestId!: string;
+}
+
+export class EntryYearsDto {
+  @IsUUID("4") childId!: string;
+}
+
 export class EntryQueryDto extends PageQueryDto {
+  @ValidateIf((_object, value) => value !== undefined) @IsString() @Matches(/^[1-9]\d{3}$/) year?: string;
   @ValidateIf((_object, value) => value !== undefined) @IsUUID("4") childId?: string;
 }
 
 export class MetricQueryDto extends PageQueryDto {
+  @IsIn(["ASC", "DESC"]) order: "ASC" | "DESC" = "ASC";
   @IsUUID("4") childId!: string;
   @IsIn(["HEIGHT", "WEIGHT", "HEAD"]) type!: "HEIGHT" | "WEIGHT" | "HEAD";
 }

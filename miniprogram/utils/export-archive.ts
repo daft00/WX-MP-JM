@@ -20,6 +20,7 @@ export interface ArchiveMedia { asset: Asset; path: string }
 
 export function archiveHtml(child: Child, period: string, entries: Entry[], media: ArchiveMedia[]): string {
   const escape = escapeHtml;
+  const mediaById = new Map(media.map(file => [file.asset.id, file]));
   const ordered = [...entries].sort((a, b) => a.occurredAt.localeCompare(b.occurredAt) || a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
   const months = new Map<string, Entry[]>();
   for (const entry of ordered) {
@@ -28,7 +29,7 @@ export function archiveHtml(child: Child, period: string, entries: Entry[], medi
   }
   const cards = [...months].map(([month, items]) => `<details open><summary>${escape(month.replace("-", "年"))}月</summary>${items.map((entry) => {
     const assets = entry.assetIds.map((id) => {
-      const item = media.find((file) => file.asset.id === id);
+      const item = mediaById.get(id);
       if (!item) throw new Error("记录包含未导出的素材");
       const url = escape(item.path);
       return item.asset.kind === "VIDEO" ? `<video controls preload="metadata" src="${url}"></video><a href="${url}" download>保存视频</a>` : `<a href="${url}" target="_blank" rel="noopener"><img loading="lazy" src="${url}" alt="${escape(item.asset.name)}"></a>`;

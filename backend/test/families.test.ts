@@ -42,6 +42,22 @@ test("invite secret configuration fails safely and is mandatory in production", 
   assert.equal(validateEnvironment({ ...env, INVITE_CODE_SECRET: "b".repeat(64) }).INVITE_CODE_SECRET, "b".repeat(64));
 });
 
+test("family creation requires unused approval, preserves existing owners and consumes approval", async () => {
+  for (const permission of [[], [{ used_at: new Date() }]]) {
+    const f = fixture([[{ id: actorId }], permission]);
+    await assert.rejects(f.service.create(actorId, "家庭"), errorStatus(403));
+    assert.equal(f.calls.length, 2);
+  }
+  await assert.rejects(fixture([[{ id: actorId }], [{ used_at: null }], [family]]).service.create(actorId, "家庭"), errorStatus(409));
+  const f = fixture([[{ id: actorId }], [{ used_at: null }], [], {}, {}, {}, {}, [family]]);
+  await f.service.create(actorId, "家庭");
+  assert.match(f.calls[0].sql, /users.*FOR UPDATE/);
+  assert.match(f.calls[6].sql, /UPDATE family_creation_permissions/);
+  assert.equal((await fixture([[], []]).service.creationStatus(actorId)).canCreate, false);
+  assert.equal((await fixture([[{ used_at: null }], []]).service.creationStatus(actorId)).canCreate, true);
+  assert.equal((await fixture([[{ used_at: null }], [family]]).service.creationStatus(actorId)).canCreate, false);
+});
+
 test("nonmembers get the same 404 as missing families, before member data is read", async () => {
   for (const method of ["get", "members", "createInvite"] as const) {
     const { service, calls } = fixture([[family], []]);
@@ -156,6 +172,9 @@ test("HTTP family routes require authentication, validate DTOs and use the authe
     }
     assert.equal((await request("GET", "/not-a-uuid")).status, 400);
     assert.equal((await request("PATCH", `/${familyId}/members/${memberId}`, { role: "OWNER" })).status, 400);
+    assert.equal((await request("PUT", `/${familyId}/members/${memberId}`, { role: "OWNER" })).status, 400);
+    assert.equal((await request("PUT", `/${familyId}/members/${memberId}`, { role: "ADMIN" })).status, 200);
+    assert.deepEqual(calls.at(-1), ["role", actorId, familyId, memberId, "ADMIN"]);
     assert.equal((await request("POST", "/join", { code: " abcdef0123456789 " })).status, 200);
     assert.deepEqual(calls.at(-1), ["join", actorId, "ABCDEF0123456789"]);
     assert.equal((await request("POST", "/join", { code: "ABCDEF0123456789", userId: targetId })).status, 400);

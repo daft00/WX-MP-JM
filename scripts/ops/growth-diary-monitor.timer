@@ -1,0 +1,10 @@
+[Unit]
+Description=Check Growth Diary operations every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=5min
+Unit=growth-diary-monitor.service
+
+[Install]
+WantedBy=timers.target

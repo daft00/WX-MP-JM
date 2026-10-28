@@ -1,0 +1,15 @@
+[Unit]
+Description=Growth Diary operations checks
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/growth-diary-ops/monitor.py --config /etc/growth-diary/monitor.json
+TimeoutStartSec=3min
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/growth-diary-ops
+

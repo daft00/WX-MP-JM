@@ -1,3 +1,6 @@
+import { GovernanceModule } from "./governance/governance.module";
+import { ExportsModule } from "./exports/exports.module";
+import { MediaModule } from "./media/media.module";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { validateEnvironment } from "./config";
@@ -14,7 +17,7 @@ import { AdminModule } from "./admin/admin.module";
     isGlobal: true,
     envFilePath: ".env",
     validate: validateEnvironment,
-  }), AuthModule, FamiliesModule, ChildrenModule, EntriesModule, AdminModule],
+  }), AuthModule, FamiliesModule, ChildrenModule, EntriesModule, AdminModule, MediaModule, ExportsModule, GovernanceModule],
   controllers: [HealthController],
   providers: [DatabaseHealthService],
 })

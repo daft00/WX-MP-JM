@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Header, HttpCode, Param, ParseUUIDPipe, Post, Put, Query, Req } from "@nestjs/common";
 import { AuthenticatedRequest } from "../auth/auth.guard";
-import { EntryQueryDto, MetricQueryDto, SaveEntryDto } from "./entries.dto";
+import { CreateEntryDto, EntryYearsDto, EntryQueryDto, MetricQueryDto, SaveEntryDto } from "./entries.dto";
 import { EntriesService } from "./entries.service";
 
 @Controller("families/:familyId")
@@ -17,6 +17,11 @@ export class EntriesController {
     return this.entries.metrics(request.auth.user.id, familyId, query);
   }
 
+  @Get("entries/years") @Header("Cache-Control", "no-store")
+  years(@Req() request: AuthenticatedRequest, @Param("familyId", new ParseUUIDPipe({ version: "4" })) familyId: string, @Query() query: EntryYearsDto) {
+    return this.entries.years(request.auth.user.id, familyId, query.childId);
+  }
+
   @Get("entries/:entryId") @Header("Cache-Control", "no-store")
   get(@Req() request: AuthenticatedRequest, @Param("familyId", new ParseUUIDPipe({ version: "4" })) familyId: string,
     @Param("entryId", new ParseUUIDPipe({ version: "4" })) entryId: string) {
@@ -24,7 +29,7 @@ export class EntriesController {
   }
 
   @Post("entries") @Header("Cache-Control", "no-store")
-  create(@Req() request: AuthenticatedRequest, @Param("familyId", new ParseUUIDPipe({ version: "4" })) familyId: string, @Body() body: SaveEntryDto) {
+  create(@Req() request: AuthenticatedRequest, @Param("familyId", new ParseUUIDPipe({ version: "4" })) familyId: string, @Body() body: CreateEntryDto) {
     return this.entries.save(request.auth.user.id, familyId, body);
   }
 

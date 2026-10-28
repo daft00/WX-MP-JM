@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Growth Diary media worker
+PartOf=growth-diary.service
+After=growth-diary.service
+
+[Timer]
+OnBootSec=30s
+OnUnitInactiveSec=15s
+Unit=growth-diary-media.service
+
+[Install]
+WantedBy=timers.target

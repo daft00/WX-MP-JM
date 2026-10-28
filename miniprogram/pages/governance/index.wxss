@@ -1,0 +1,6 @@
+.card { padding: 28rpx; margin-bottom: 24rpx; }
+.title { font-size: 36rpx; font-weight: 600; }
+.paragraph { margin: 24rpx 0; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+label { display: block; margin: 24rpx 0; line-height: 1.7; }
+button { margin-top: 20rpx; }
+picker { padding: 24rpx 0; }

@@ -6,7 +6,7 @@
   "projectname": "growth-diary-prototype",
   "description": "成长日记纯前端原型",
   "setting": {
-    "urlCheck": false,
+    "urlCheck": true,
     "es6": true,
     "enhance": true,
     "postcss": true,

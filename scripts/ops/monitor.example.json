@@ -1,0 +1,12 @@
+{
+  "backup_dir": "/opt/growth-diary/encrypted-backups",
+  "mysql_defaults": "/etc/growth-diary/monitor.cnf",
+  "tls_host": "api.daftjiang.cn",
+  "nginx_log": "/var/log/nginx/growth-diary-ops.log",
+  "status_dir": "/var/lib/growth-diary-ops",
+  "billing_review_file": "/etc/growth-diary/billing-review.json",
+  "alert_command": "",
+  "disk_percent": 80,
+  "connection_percent": 80,
+  "http_5xx_count": 5
+}

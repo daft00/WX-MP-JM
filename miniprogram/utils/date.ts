@@ -1,12 +1,12 @@
 export function today(): string {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
 }
 
 export function formatDate(value: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-");
+    return `${year}年${Number(month)}月${Number(day)}日`;
+  }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return value;
@@ -30,9 +30,9 @@ export function calculateAge(birthday: string, at: string = today()): string {
   if (Number.isNaN(birth.getTime()) || Number.isNaN(target.getTime())) {
     return "年龄未知";
   }
-  let months = (target.getFullYear() - birth.getFullYear()) * 12;
-  months += target.getMonth() - birth.getMonth();
-  if (target.getDate() < birth.getDate()) {
+  let months = (target.getUTCFullYear() - birth.getUTCFullYear()) * 12;
+  months += target.getUTCMonth() - birth.getUTCMonth();
+  if (target.getUTCDate() < birth.getUTCDate()) {
     months -= 1;
   }
   months = Math.max(0, months);

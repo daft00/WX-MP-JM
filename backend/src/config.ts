@@ -67,8 +67,27 @@ export function validateEnvironment(env: Record<string, unknown>) {
       (nodeEnv === "production" && !inviteSecret)) {
     throw new Error("INVITE_CODE_SECRET must be 64 hex characters and is required in production");
   }
+  if (env.EXPORT_PUBLIC_ORIGIN) {
+    try {
+      const origin = new URL(String(env.EXPORT_PUBLIC_ORIGIN));
+      if (origin.protocol !== "https:" || origin.origin !== env.EXPORT_PUBLIC_ORIGIN || origin.username || origin.password) throw new Error();
+    } catch { throw new Error("EXPORT_PUBLIC_ORIGIN must be an HTTPS origin without a trailing slash"); }
+  }
+  const governance = String(env.GOVERNANCE_ENABLED ?? "false");
+  if (!["true", "false"].includes(governance)) throw new Error("GOVERNANCE_ENABLED must be true or false");
+  if (governance === "true" && (!String(env.LEGAL_OPERATOR || "").trim() ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(env.LEGAL_CONTACT || "")) || !String(env.LEGAL_RETENTION_NOTE || "").trim())) {
+    throw new Error("Governance requires LEGAL_OPERATOR, LEGAL_CONTACT and LEGAL_RETENTION_NOTE");
+  }
+  const mediaEnabled = String(env.MEDIA_ENABLED ?? "false");
+  if (!["true", "false"].includes(mediaEnabled)) throw new Error("MEDIA_ENABLED must be true or false");
+  if (mediaEnabled === "true" && (
+    !/^[a-z0-9][a-z0-9-]*-\d+$/.test(String(env.COS_BUCKET ?? "")) ||
+    !/^[a-z]+-[a-z]+(?:-\d+)?$/.test(String(env.COS_REGION ?? "")) ||
+    !env.COS_SECRET_ID || !env.COS_SECRET_KEY
+  )) throw new Error("Media requires COS_BUCKET, COS_REGION, COS_SECRET_ID and COS_SECRET_KEY");
   return {
-    ...env, NODE_ENV: nodeEnv, HOST: host, PORT: Number(port),
+    ...env, GOVERNANCE_ENABLED: governance === "true", MEDIA_ENABLED: mediaEnabled === "true", NODE_ENV: nodeEnv, HOST: host, PORT: Number(port),
     WECHAT_APP_ID: appId, WECHAT_APP_SECRET: appSecret,
     ENABLE_DEV_LOGIN: String(devLogin) === "true", DEV_LOGIN_KEY: devKey,
     AUTH_SESSION_TTL_SECONDS: Number(ttl),

@@ -1,3 +1,4 @@
+import { ApiError } from "../../services/http-services";
 import { services } from "../../services/index";
 import { Asset, Entry } from "../../types/models";
 import { calculateAge, formatDate } from "../../utils/date";
@@ -16,6 +17,8 @@ Page({
     canEdit: false,
     canDelete: false,
     loading: true,
+    deleting: false,
+    error: "",
   },
 
   entryId: "",
@@ -31,7 +34,7 @@ Page({
   },
 
   async loadEntry() {
-    this.setData({ loading: true });
+    this.setData({ loading: true, error: "", entry: null, assets: [], canEdit: false, canDelete: false });
     try {
       const entry = await services.entries.get(this.entryId);
       const [children, members, assets, canEdit, canDelete] = await Promise.all([
@@ -60,7 +63,8 @@ Page({
         canDelete,
       });
     } catch (error) {
-      wx.showToast({ title: error instanceof Error ? error.message : "加载失败", icon: "none" });
+      this.setData({ error: error instanceof Error ? error.message : "加载失败" });
+      if (error instanceof ApiError && error.status === 401) wx.reLaunch({ url: "/pages/select-family/index" });
     } finally {
       this.setData({ loading: false });
     }
@@ -82,23 +86,31 @@ Page({
   },
 
   deleteEntry() {
+    if (this.data.deleting || !this.data.canDelete) return;
+    this.setData({ deleting: true });
     wx.showModal({
       title: "永久删除这条记录？",
-      content: "删除后记录和关联媒体会立即移除，原型不提供回收站，也无法恢复。",
+      content: "记录会立即移除且无法撤销。后台会清理关联媒体和该宝宝的历史导出包；已下载副本无法收回，备份按保存周期到期清理。可在数据处理页查看完成状态。",
       confirmText: "永久删除",
       confirmColor: "#BD5353",
+      fail: () => this.setData({ deleting: false }),
       success: async (result) => {
         if (!result.confirm) {
+          this.setData({ deleting: false });
           return;
         }
         try {
           await services.entries.deletePermanent(this.entryId);
-          wx.showToast({ title: "已永久删除", icon: "success" });
-          setTimeout(() => wx.navigateBack(), 500);
+          wx.showToast({ title: "已移除，清理中", icon: "none" });
+          wx.navigateBack();
         } catch (error) {
-          wx.showToast({ title: error instanceof Error ? error.message : "删除失败", icon: "none" });
+          this.setData({ deleting: false, error: error instanceof Error ? error.message : "删除失败，请刷新确认结果" });
         }
       },
     });
+  },
+  requestDeletion() {
+    if (!this.data.canDelete || !this.data.entry) return;
+    wx.navigateTo({ url: `/pages/governance/index?entryId=${encodeURIComponent(this.entryId)}&familyId=${encodeURIComponent(this.data.entry.familyId)}` });
   },
 });

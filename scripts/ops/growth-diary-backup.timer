@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily Growth Diary database backup
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 Asia/Shanghai
+Persistent=true
+Unit=growth-diary-backup.service
+
+[Install]
+WantedBy=timers.target
